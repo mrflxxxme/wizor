@@ -2,8 +2,8 @@
 
 # STATUS — WIZOR
 
-**Обновлено:** 2026-06-23 · сессия `scaffold-bootstrap` · @claude-opus
-**Стадия:** Scaffold v1.0 завершён → готов к Phase 0.
+**Обновлено:** 2026-06-23 · сессия `regulation-update-adr0017` · @claude-opus
+**Стадия:** Scaffold v1.0 + регламент ADR-0017 (gate-only автономия) → готов к Phase 0.
 
 ## Прогресс роадмапа
 

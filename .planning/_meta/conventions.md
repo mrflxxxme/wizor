@@ -1,4 +1,4 @@
-<!-- HEAD-SUMMARY (≤500т): Конвенции WIZOR — Python 3.12/FastAPI/ruff/mypy, TypeScript strict, <500 строк/файл, Conventional Commits, ветки phase/PNN-slug, tier-review (Tier 1–2 авто-мердж, Tier 3+ founder), 11 CI-гейтов, DoD. Не дублировать в phase-файлах — ссылаться. -->
+<!-- HEAD-SUMMARY (≤500т): Конвенции WIZOR — Python 3.12/FastAPI/ruff/mypy, TypeScript strict, <500 строк/файл, Conventional Commits, ветки phase/PNN-slug, tier-review (tier задаёт строгость CI/аудита; human-аппрув только на гейте фазы — ADR-0017), 11 CI-гейтов, DoD. Не дублировать в phase-файлах — ссылаться. -->
 
 # Conventions — код, тесты, процесс
 
@@ -46,15 +46,15 @@
 
 ## Tier-based review
 
-Founder — **единственный человек-апрувер Tier 3+** (чартер §2 #10):
+**Human-аппрув — только на гейте фазы** (`founder_signature`, ADR-0017). Внутри фазы PR авто-мерджятся на (зелёный CI + `reviewer` APPROVE + `auditor` PASS). Tier задаёт глубину аудита и строгость CI, НЕ маршрутизацию на человека:
 
-| Tier | Примеры | Апрувер | Авто-мердж |
+| Tier | Примеры | Аудит (шаг 7) | CI |
 |---|---|---|---|
-| 1–2 | Docs, config, лёгкий UI | AI (`reviewer`) | Да, зелёный CI |
-| 3 | Crawler, scoring, probe, recommendations, verification | **Founder** | Нет |
-| 4 | Инфра, billing, Keycloak, auto-fix, ПДн | **Founder** | Нет |
+| 1–2 | Docs, config, лёгкий UI | 1 линза | базовый |
+| 3 | Crawler, scoring, probe, recommendations, verification | 3 линзы | полный |
+| 4 | Инфра, billing, Keycloak, auto-fix, ПДн | 5 линз | полный + security |
 
-Security / compliance / ПДн любого уровня → всегда Founder + эскалация к `architect`.
+Security / compliance / ПДн любого уровня → обязательная линза `auditor` + эскалация к `architect`/founder при реальном блокере. Необратимые ВНЕШНИЕ действия (реальный prod, деньги, DPA) — отдельный product-runtime consent (ADR-0015), не dev-ревью.
 
 ## CI gates (обязательно для каждого PR)
 
@@ -84,4 +84,4 @@ Fail = блок merge. Bypass = explicit override + founder + ADR.
 - [ ] Память обновлена (`memory-curator`: STATUS/HANDOFF/JOURNAL/MEMORY-INDEX)
 - [ ] Gate заполнен / обновлён для текущей фазы
 - [ ] Handoff записан (чартер §8.6)
-- [ ] PR апрувнут по tier-таблице и смерджен
+- [ ] PR авто-смерджен (CI + reviewer + auditor PASS); гейт фазы подписан founder при закрытии фазы

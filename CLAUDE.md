@@ -39,8 +39,15 @@ Scope → Plan(pinned) → Domain-build(специалист сам пишет) 
 ## Git / PR / CI
 
 - Ветка-на-фазу `phase/PNN-slug`; атомарные коммиты (Conventional Commits, футер `Refs: PNN, ADR-NNNN`).
-- AI `reviewer`+`auditor` ревьюят в PR; **founder — единственный человек-апрувер на tier 3+**; tier 1–2 авто-мердж на зелёном CI.
+- AI `reviewer`+`auditor` ревьюят в PR; **внутри фазы PR авто-мерджятся** (CI + reviewer + auditor PASS); **человек-ревью только на гейте фазы** (`founder_signature`) — ADR-0017.
 - CI-гейты: lint · type-check · tests · security/secrets · migration-safety. Любой красный = блок мерджа.
+
+## Автономия (ADR-0017)
+
+- **Человек — только на гейтах фаз.** Внутри фазы агенты автономны: планируют, пишут, ревьюят, аудируют и **мерджат PR сами** (зелёный CI + `reviewer` APPROVE + `auditor` PASS). Per-PR аппрув человека упразднён.
+- **Доп-сессии Claude Code** разрешены: Agent tool (параллельные независимые задачи) и headless `claude -p` (полностью независимая сессия); при ~120 KB контекста — handoff → свежая сессия. Guardrails: глубина спавна ≤ 2, ≤ 8 одновременных, cost/stagnation kill-switch, каждый юнит пишет handoff.
+- **Эскалация — исключение:** рутинное «проверь работу» НЕ неси к founder (это `reviewer`/`auditor`); к founder — только реальный блокер или его территория, асинхронно (флаг в HANDOFF).
+- **Граница:** необратимые внешние действия (реальный клиентский prod, живые деньги, подпись DPA, внешние коммуникации) — product-runtime под trust-ladder/DPA (ADR-0015), НЕ dev-автономия.
 
 ## Стоячие инварианты (проверяются в каждом аудите)
 

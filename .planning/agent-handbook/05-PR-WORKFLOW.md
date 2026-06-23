@@ -1,4 +1,4 @@
-<!-- HEAD-SUMMARY (≤500т): Branch-per-phase, Conventional Commits, тир-таблица PR (1–5, founder sole human approver tier 3+), CI-гейты, exit-ritual перед мержем, лимит PR < 500 строк. -->
+<!-- HEAD-SUMMARY (≤500т): Branch-per-phase, Conventional Commits, тир-таблица (1–5 — задаёт строгость CI/аудита), авто-мердж внутри фазы (CI+reviewer+auditor), human-ревью только на гейте фазы (ADR-0017), exit-ritual, лимит PR < 500 строк. -->
 
 # 05-PR-WORKFLOW — Git / PR / CI-протокол
 
@@ -22,17 +22,19 @@ Refs: P2, ADR-0008
 Коммиты — атомарные: один коммит = одно логически завершённое изменение.  
 **Лимит PR: < 500 строк diff** (исключение — auto-generated, обсуждается с founder).
 
-## Тир-таблица (charter §2, ADR-0009)
+## Тир-таблица (charter §2, ADR-0009 → amended by ADR-0017)
 
-| Tier | Примеры | Founder action | CI |
+Tier задаёт **глубину аудита и строгость CI**, НЕ маршрутизацию на человека. Внутри фазы все tier'ы авто-мерджятся на (зелёный CI + `reviewer` APPROVE + `auditor` PASS). Человек — на **гейте фазы**.
+
+| Tier | Примеры | Аудит (шаг 7) | CI |
 |---|---|---|---|
-| **1** | Docs, форматирование, dep-patch | Auto-merge при зелёном CI | Полный |
-| **2** | Тесты, рефактор, copy | Skim + ack | Полный |
-| **3** | Новый endpoint, компонент, фича | **Explicit approve** | Полный |
-| **4** | Архитектура, security, биллинг, ПДн, auto-fix | **Explicit approve + ADR-ссылка** | Полный + security |
-| **5** | Hotfix prod | **Same-session approve** | Критический минимум |
+| **1** | Docs, форматирование, dep-patch | 1 линза | Базовый |
+| **2** | Тесты, рефактор, copy | 1 линза | Полный |
+| **3** | Новый endpoint, компонент, фича | 3 линзы | Полный |
+| **4** | Архитектура, security, биллинг, ПДн, auto-fix | 5 линз | Полный + security |
+| **5** | Hotfix prod | 1–3 линзы | Критический минимум |
 
-**ИИ-агенты не имеют права мержить tier 3+ PR.** CI green + AI review = необходимо, но не достаточно.
+**ИИ-агенты мерджат PR внутри фазы автономно** (ADR-0017): CI green + `reviewer` APPROVE + `auditor` PASS. Человек подключается только на гейте фазы (`founder_signature`). Необратимые внешние действия (реальный prod / деньги / DPA) — отдельный product-runtime consent (ADR-0015).
 
 ## CI-гейты (обязательны для всех tier)
 
@@ -88,6 +90,6 @@ license       → нет GPL/AGPL
 
 - **Коммит «fix everything»** — разбивай на атомарные.
 - **PR > 500 строк** — сплитти или обсуди с founder.
-- **Мерж без founder approve (tier 3+)** — блокировано политикой.
+- **Ждать founder-аппрув на каждый PR** — внутри фазы мердж автономен; человек только на гейте (ADR-0017).
 - **Секреты в коде** — gitleaks поймает; но лучше не пускать.
 - **Skip exit-ritual** — следующая сессия стартует вслепую.

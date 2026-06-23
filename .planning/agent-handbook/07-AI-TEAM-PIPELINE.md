@@ -46,8 +46,8 @@ P0(research) → P1(infra) → P2(crawler) → P3(scoring) → P4(llm-router)
         │       STATUS.md + HANDOFF.md + JOURNAL.md + MEMORY-INDEX.md
         │       архив аудита + регенерация README + gate-fill
         │
-  9 PR+MERGE ─ tier 1-2: авто-мердж @ green CI
-                tier 3+: founder explicit approve [ОБЯЗАТЕЛЬНО]
+  9 PR+MERGE ─ авто-мердж @ (green CI + reviewer APPROVE + auditor PASS)
+                человек — ТОЛЬКО на гейте фазы (founder_signature) [ADR-0017]
 ```
 
 ## Детали ключевых шагов
@@ -81,7 +81,7 @@ P3 → geo-domain-expert            P10→ cms-connector + compliance [gated:P0]
 **Шаг 8 Memory-update — единственный писатель:**  
 `memory-curator` пишет: STATUS / HANDOFF (≤2 KB) / JOURNAL (+ротация >300 строк) / MEMORY-INDEX / gate-fill / README-статус / архив.
 
-**Шаг 9 PR:** tier 1–2 авто-мердж @ green CI; tier 3+ **founder explicit approve** обязателен. Подробнее: `05-PR-WORKFLOW.md`.
+**Шаг 9 PR:** PR авто-мерджится @ (green CI + `reviewer` APPROVE + `auditor` PASS) — внутри фазы автономно; **человек — только на гейте фазы** (`founder_signature`, ADR-0017). Доп-сессии для параллелизма/контекста: `02-DELEGATION.md`. Подробнее: `05-PR-WORKFLOW.md`.
 
 ## Cost-control (charter §3.4)
 

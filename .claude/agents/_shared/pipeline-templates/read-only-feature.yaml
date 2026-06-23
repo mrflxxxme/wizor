@@ -61,11 +61,16 @@ steps:
     updates: [STATUS.md, HANDOFF.md, JOURNAL.md, MEMORY-INDEX.md]
     triggers: [readme-regen, gate-fill]
 
-  - id: pr-approve
-    actor: founder
+  - id: pr-auto-merge          # ADR-0017: авто-мердж внутри фазы
+    actor: agents
     depends_on: [memory-update]
-    tier: 3
+    condition: ci_green AND review.verdict == approve AND audit.verdict in [PASS, PASS-WITH-FIXES]
     action: merge-pr
+
+  - id: phase-gate             # ADR-0017: человек — только на гейте фазы
+    actor: founder
+    depends_on: [pr-auto-merge]
+    action: founder_signature  # на gates/*.md, если фаза закрывает гейт
 
 escalation:
   to: architect

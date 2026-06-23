@@ -74,11 +74,18 @@ steps:
     depends_on: [post-audit]
     updates: [STATUS.md, HANDOFF.md, JOURNAL.md, MEMORY-INDEX.md]
 
-  - id: pr-approve
-    actor: founder
+  - id: pr-auto-merge          # ADR-0017: авто-мердж внутри фазы
+    actor: agents
     depends_on: [memory-update]
-    tier: 4                     # Tier 4 = обязательный founder-approve
+    condition: ci_green AND review.verdict == approve AND audit.verdict in [PASS, PASS-WITH-FIXES]
     action: merge-pr
+    notes: "Человек НЕ аппрувит per-PR; PR мерджится автономно."
+
+  - id: phase-gate             # ADR-0017: единственная штатная точка человека
+    actor: founder
+    depends_on: [pr-auto-merge]
+    action: founder_signature  # на gates/*.md
+    notes: "Founder ревьюит кумулятивный результат фазы. Применение auto-fix на РЕАЛЬНЫЙ prod — отдельный product-runtime consent (trust-ladder/DPA, ADR-0015), не dev-ревью."
 
 escalation:
   to: architect

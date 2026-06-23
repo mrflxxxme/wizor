@@ -1,4 +1,4 @@
-<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 16 принятых решений: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016). Все accepted, дата 2026-06-23. -->
+<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 17 принятых решений: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия / гейт-only). Все accepted, 2026-06-23. -->
 
 # ADR Index — WIZOR
 
@@ -14,7 +14,7 @@
 | ADR-0006 | file-native-memory | Файл-нативная память: MEMORY-INDEX + summary-first + ротация + auto-README | accepted | 2026-06-23 |
 | ADR-0007 | read-only-first-roadmap | Роадмап P0–P10 read-only-first; авто-применение (P10) gated by P0 | accepted | 2026-06-23 |
 | ADR-0008 | contracts-stubs-plus-jit | Стабы контрактов сразу, api/events/schema — JIT при планировании фазы | accepted | 2026-06-23 |
-| ADR-0009 | lightweight-pr-per-phase-tiered-ci | Лёгкий PR на фазу + тированные CI-гейты; founder — единственный апрувер tier 3+ | accepted | 2026-06-23 |
+| ADR-0009 | lightweight-pr-per-phase-tiered-ci | Лёгкий PR на фазу + тированные CI-гейты (human-аппрув перенесён на гейт фазы — amended by ADR-0017) | accepted | 2026-06-23 |
 | ADR-0010 | language-ru-narrative-en-identifiers | Язык: нарратив RU, идентификаторы/код EN | accepted | 2026-06-23 |
 | ADR-0011 | stack-lock | Стек зафиксирован по PRD §12 (boring tech) | accepted | 2026-06-23 |
 | ADR-0012 | three-track-access-model | Three-track: Tier 0 / Manual / Auto; DPA/API — gate только Auto | accepted | 2026-06-23 |
@@ -22,6 +22,7 @@
 | ADR-0014 | dual-geo-probe-no-ru-ip | Dual-geo probe: RU-ноды для RU-моделей, зарубежные ноды для ChatGPT/Perplexity | accepted | 2026-06-23 |
 | ADR-0015 | trust-ladder-and-dpa | Trust ladder: approval-gate→opt-in auto; DPA обязателен; rollback; audit-log | accepted | 2026-06-23 |
 | ADR-0016 | llms-txt-not-citation-weighted | llms.txt не в citation-весе/Score; honest-uncertainty: N≥5+CI, нет гарантированных Visibility-% | accepted | 2026-06-23 |
+| ADR-0017 | phase-gate-only-autonomy | Человек-ревью только на гейтах фаз; внутри фазы полная автономия (мердж/аудит/доп-сессии сами); amends ADR-0009 | accepted | 2026-06-23 |
 
 ## Связи с Charter §2 (decision log)
 
@@ -43,6 +44,7 @@
 | 14 | CLAUDE.md | ADR-0001 |
 | 15 | Стек | ADR-0011 |
 | 16 | Модель доступа | ADR-0012 |
+| 18 | Автономия / human-in-the-loop (гейт-only) | ADR-0017 |
 | Product-1 | Multi-tenancy | ADR-0013 |
 | Product-2 | Dual-geo probe | ADR-0014 |
 | Product-3 | Trust ladder + DPA | ADR-0015 |

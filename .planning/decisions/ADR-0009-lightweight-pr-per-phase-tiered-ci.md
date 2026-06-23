@@ -4,8 +4,11 @@ title: lightweight-pr-per-phase-tiered-ci
 status: accepted
 date: 2026-06-23
 supersedes: []
+amended_by: [ADR-0017]
 ---
-<!-- HEAD-SUMMARY (≤500т): Один PR на фазу; CI-гейты пропорциональны tier фазы; founder — единственный человек-апрувер на tier 3+; tier 1–2 авто-мердж на зелёном CI. -->
+<!-- HEAD-SUMMARY (≤500т): Один PR на фазу; CI-гейты пропорциональны tier фазы; founder — единственный человек-апрувер на tier 3+ (⚠ AMENDED by ADR-0017: human-аппрув перенесён на гейт фазы, внутри фазы авто-мердж); tier 1–2 авто-мердж на зелёном CI. -->
+
+> ⚠️ **Amended by [ADR-0017]** (2026-06-23): человеческий аппрув перенесён с per-PR tier 3+ на **гейт фазы**; внутри фазы PR авто-мерджятся (CI + `reviewer` + `auditor` PASS). Текст ниже — исходное решение; действующая модель — ADR-0017.
 
 ## Context
 

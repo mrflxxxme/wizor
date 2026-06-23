@@ -9,7 +9,7 @@
 - artifacts: [.planning/STATUS.md, .planning/HANDOFF.md, .planning/MEMORY-INDEX.md, README.md]
 - contracts_touched: []
 - self_audit: pass (checklists/memory-update.md)
-- next: founder создаёт PR; tier-based merge
+- next: PR авто-мерджится (CI+reviewer+auditor PASS); founder — на гейте фазы (ADR-0017)
 - escalate: none | gate_pending: [<поля не заполнены>]
 ```
 
