@@ -11,6 +11,7 @@
 | tiering | модели по роли | `decisions/ADR-0003` · charter §3.3 | Tier-0/Haiku/Sonnet/Opus + эскалация | 2026-06-23 |
 | loop | цикл фазы | charter §4 · `agent-handbook/07-AI-TEAM-PIPELINE.md` | 9 шагов, обяз. пост-аудит+память | 2026-06-23 |
 | autonomy | автономия / gate-only | `decisions/ADR-0017` · charter §11 · CLAUDE.md · `agent-handbook/02-DELEGATION.md` | человек только на гейтах; per-PR авто-мердж; доп-сессии (Agent tool / claude -p) + контекст-менеджмент | 2026-06-23 |
+| testing | тесты + live-gold перед PR | `decisions/ADR-0018` · charter §12 · `.claude/agents/verifier/` | self-run unit+integration + live-gold (где возможно); evidence в гейт; deferred_live_gold если невозможно | 2026-06-23 |
 | audit | пост-аудит | `decisions/ADR-0005` · charter §6 · `.claude/agents/auditor/` | риск-тир 1/3/5 линз + 10 инвариантов | 2026-06-23 |
 | invariants | стоячие инварианты | charter §6 · `auditor/checklists/invariant-checklist.md` | read-only, honest-forecast, auto-fix-safety… | 2026-06-23 |
 | memory | память/recall | `decisions/ADR-0006` · charter §10 | MEMORY-INDEX + summary-first + ротация | 2026-06-23 |

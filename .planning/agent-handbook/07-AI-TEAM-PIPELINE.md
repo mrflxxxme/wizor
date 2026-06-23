@@ -35,7 +35,7 @@ P0(research) → P1(infra) → P2(crawler) → P3(scoring) → P4(llm-router)
         │
   5 REVIEW ─── reviewer/Sonnet: чек-лист + контракты ≤2 цикла
         │       [>2 цикла → architect/Opus арбитраж]
-  6 VERIFY ─── verifier/Haiku: acceptance-as-tests → pass|fail
+  6 VERIFY ─── verifier/Haiku: acceptance + тесты + live-gold(где возможно) → pass|fail [ADR-0018]
         │
  ⭐7 AUDIT ─── auditor/Opus [ОБЯЗАТЕЛЬНО]
         │       риск-тир: Tier1-2→1 линза, Tier3→3, Tier4→5
@@ -63,6 +63,8 @@ P3 → geo-domain-expert            P10→ cms-connector + compliance [gated:P0]
 ```
 
 **Шаг 5 Review:** security-линза включается при флаге `security:true` или при auth/ПДн/audit-log. После 2 циклов → `architect` арбитраж.
+
+**Шаг 6 Verify (ADR-0018):** unit + integration + **live-gold где возможно** (end-to-end против реальных сервисов с golden-набором); evidence в `_session-context/VERIFY-*` (`## Tests`, `## Live-gold`); невозможность live-gold → `deferred_live_gold` в гейт (не тихо). PR не поднимается без зелёного verify.
 
 **Шаг 7 Audit — стоячие инварианты §6 (все 10 в каждом аудите):**
 1. Read-only граница (Tier 0 / Manual — ноль write-API)

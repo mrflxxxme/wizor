@@ -36,6 +36,15 @@ Tier задаёт **глубину аудита и строгость CI**, НЕ
 
 **ИИ-агенты мерджат PR внутри фазы автономно** (ADR-0017): CI green + `reviewer` APPROVE + `auditor` PASS. Человек подключается только на гейте фазы (`founder_signature`). Необратимые внешние действия (реальный prod / деньги / DPA) — отдельный product-runtime consent (ADR-0015).
 
+## Pre-PR gate: тесты + live-gold (ADR-0018)
+
+Перед поднятием PR `verifier` (шаг 6) обязан дать зелёный:
+- unit + integration зелёные + coverage-гейт;
+- **live-gold, где возможно** — end-to-end против РЕАЛЬНЫХ сервисов с golden-набором; невозможно → явный `deferred_live_gold` в гейте (reason/what/founder_action), НЕ тихий пропуск;
+- evidence: `_session-context/VERIFY-<phase>-<ts>.md` (секции `## Tests`, `## Live-gold`).
+
+**PR не поднимается, пока verify не зелёный.** Авто-мердж = CI + `reviewer` + `auditor` + verify.
+
 ## CI-гейты (обязательны для всех tier)
 
 ```

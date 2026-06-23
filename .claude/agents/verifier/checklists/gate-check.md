@@ -12,6 +12,15 @@
 - [ ] Нет AC без проверки (если нет теста → FAIL, не пропускать)
 - [ ] Все тесты зелёные (`pytest` backend / `npm test` frontend)
 
+**Авто-тесты + coverage (ADR-0018)**
+- [ ] unit + integration зелёные
+- [ ] coverage ≥70% (≥85% security-critical) — гейт по `conventions.md`
+
+**Live-gold, где возможно (ADR-0018)**
+- [ ] live-gold-scope взят из PLAN.md
+- [ ] end-to-end против РЕАЛЬНЫХ сервисов прогнан, golden совпал (pass-каунты записаны)
+- [ ] ЕСЛИ невозможно → `deferred_live_gold` зафиксирован в отчёте + гейте (reason/what/founder_action); НЕ тихий пропуск
+
 **Exit-gate пороги** (из phase-spec)
 - [ ] Все количественные пороги достигнуты (покрытие, latency, etc.)
 - [ ] Пороги измерены, не оценены субъективно
@@ -20,4 +29,4 @@
 - [ ] ВСЕ AC pass И ВСЕ пороги достигнуты → PASS
 - [ ] Хотя бы одно FAIL → итог FAIL (без исключений)
 
-**Output:** `_session-context/VERIFY-<phase>-<ts>.md` с таблицей: `| AC-id | description | status | evidence |`
+**Output:** `_session-context/VERIFY-<phase>-<ts>.md` с таблицей `| AC-id | description | status | evidence |` + секции `## Tests`, `## Live-gold` (или `deferred_live_gold`).

@@ -22,3 +22,11 @@
 - **Урок процесса:** build-суб-агент оборвался на середине и работал аддитивно (добавлял, не убирал старое) — пропагацию доделал и сверил вручную grep-свипом. Вывод: после делегированной правки регламента ОБЯЗАТЕЛЕН verify-свип на остаточные противоречия.
 - **Next:** founder запускает P0 — теперь автономно до гейта.
 - **Refs:** ADR-0017; amends ADR-0009; charter v1.1.
+
+## 2026-06-23 · regulation-update-adr0018 · @claude-opus (ADR-0018)
+
+- **Scope:** запрос founder — агенты обязаны сами прогонять тесты + live-gold перед PR (где возможно); автономность внутри фаз должна быть ПОДТВЕРЖДЕНА результатами проверок.
+- **Решение:** ADR-0018 (mandatory self-run tests + live-gold before PR), **amends ADR-0017**. `verifier` (шаг 6) перед PR обязан: unit+integration зелёные + coverage-гейт; live-gold (end-to-end против реальных сервисов с golden-набором) где возможно. Evidence → `_session-context/VERIFY-<phase>-<ts>.md` (секции `## Tests` / `## Live-gold`), гейт ссылается через `evidence_url`. **No-silent-skip:** live-gold невозможен → явный `deferred_live_gold` (reason/what/founder_action), founder видит на гейте. Авто-мердж = CI + reviewer + auditor + verify(тесты+live-gold/deferral). Live-gold по треку: read-only→crawl/probe golden; infra→smoke PG/Redis/Keycloak; auto(P10)→founder-owned тест-WP + rollback.
+- **Пропагация:** ADR-0018; verifier (system-prompt/workflows/gate-check); charter (§2 #19, шаг 6, шаг 9, новый §12, v1.2); CLAUDE.md; conventions (DoD); decisions/README; handbook 00/05/07; 3 pipeline-шаблона (verify checks).
+- **Next:** founder заполняет funded-ключи в `PLACEHOLDERS.md` (нужны для live-gold LLM/probe-фаз); запуск P0.
+- **Refs:** ADR-0018; amends ADR-0017; charter v1.2.

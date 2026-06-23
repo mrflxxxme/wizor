@@ -54,6 +54,7 @@ steps:
     role: verifier              # Haiku
     depends_on: [review]
     condition: review.verdict == approve
+    checks: [unit, integration, coverage, live-gold]   # ADR-0018; live-gold = живой smoke (PG/Redis/Keycloak)
     produces: verify-report
 
   - id: post-audit             # ОБЯЗАТЕЛЬНО — tier 4 = 5 линз

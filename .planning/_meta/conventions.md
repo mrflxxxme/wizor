@@ -78,6 +78,7 @@ Fail = блок merge. Bypass = explicit override + founder + ADR.
 
 - [ ] Все tasks done; все AC выполнены и покрыты тестами
 - [ ] CI зелёный, coverage gate пройден
+- [ ] **Live-gold пройден** (end-to-end против реальных сервисов) ИЛИ явный `deferred_live_gold` в гейте с обоснованием (ADR-0018)
 - [ ] Документация обновлена (README, OpenAPI, runbook)
 - [ ] ADR создан/обновлён при значимых решениях
 - [ ] Контракты bounded-context соблюдены и обновлены

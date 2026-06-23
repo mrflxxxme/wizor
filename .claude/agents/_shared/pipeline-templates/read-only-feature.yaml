@@ -46,6 +46,7 @@ steps:
     role: verifier              # Haiku
     depends_on: [review]
     condition: review.verdict == approve
+    checks: [unit, integration, coverage, live-gold]   # ADR-0018; live-gold где возможно, иначе deferred_live_gold в гейт
     produces: verify-report
 
   - id: post-audit             # ОБЯЗАТЕЛЬНО

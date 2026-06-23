@@ -59,6 +59,7 @@ steps:
     role: verifier              # Haiku
     depends_on: [review]
     condition: review.verdict == approve
+    checks: [unit, integration, coverage, live-gold]   # ADR-0018; live-gold = применение на founder-owned тест-WP + живой rollback
     produces: verify-report
 
   - id: post-audit             # ОБЯЗАТЕЛЬНО — tier 4 = 5 линз

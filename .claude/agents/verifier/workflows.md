@@ -5,12 +5,14 @@
 **Trigger:** хендофф от reviewer (verdict: approved).
 
 1. Прочитай `checklists/gate-check.md`
-2. Загрузи PLAN.md → список AC текущей задачи/фазы
+2. Загрузи PLAN.md → список AC + live-gold-scope текущей задачи/фазы
 3. Загрузи phase-spec exit-gate (количественные пороги)
 4. Для каждого AC: запусти тест ИЛИ проверь артефакт. Нет теста = FAIL
-5. Проверь exit-gate пороги
-6. Проверь: self-audit implementer = pass, review cycles завершены
-7. Запиши `_session-context/VERIFY-<phase>-<ts>.md`: таблица AC → PASS/FAIL + итог
+5. **Авто-тесты:** unit + integration зелёные + coverage-гейт (ADR-0018)
+6. **Live-gold (где возможно):** end-to-end против реальных сервисов с golden-набором. Невозможно → `deferred_live_gold` в отчёт + гейт (не тихо)
+7. Проверь exit-gate пороги
+8. Проверь: self-audit implementer = pass, review cycles завершены
+9. Запиши `_session-context/VERIFY-<phase>-<ts>.md`: таблица AC→PASS/FAIL + `## Tests` + `## Live-gold` + итог
 
 **Output:** `_session-context/VERIFY-<phase>-<ts>.md`
 **Handoff:** → auditor (PASS) / → planner + founder (FAIL с таблицей)

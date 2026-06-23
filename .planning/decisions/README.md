@@ -1,4 +1,4 @@
-<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 17 принятых решений: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия / гейт-only). Все accepted, 2026-06-23. -->
+<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 18 принятых решений: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия) + ADR-0018 (тесты+live-gold перед PR). Все accepted, 2026-06-23. -->
 
 # ADR Index — WIZOR
 
@@ -23,6 +23,7 @@
 | ADR-0015 | trust-ladder-and-dpa | Trust ladder: approval-gate→opt-in auto; DPA обязателен; rollback; audit-log | accepted | 2026-06-23 |
 | ADR-0016 | llms-txt-not-citation-weighted | llms.txt не в citation-весе/Score; honest-uncertainty: N≥5+CI, нет гарантированных Visibility-% | accepted | 2026-06-23 |
 | ADR-0017 | phase-gate-only-autonomy | Человек-ревью только на гейтах фаз; внутри фазы полная автономия (мердж/аудит/доп-сессии сами); amends ADR-0009 | accepted | 2026-06-23 |
+| ADR-0018 | mandatory-tests-and-live-gold-before-pr | Обязательные self-run тесты + live-gold (где возможно) перед PR; evidence в гейт; amends ADR-0017 | accepted | 2026-06-23 |
 
 ## Связи с Charter §2 (decision log)
 
@@ -45,6 +46,7 @@
 | 15 | Стек | ADR-0011 |
 | 16 | Модель доступа | ADR-0012 |
 | 18 | Автономия / human-in-the-loop (гейт-only) | ADR-0017 |
+| 19 | Тесты + live-gold перед PR | ADR-0018 |
 | Product-1 | Multi-tenancy | ADR-0013 |
 | Product-2 | Dual-geo probe | ADR-0014 |
 | Product-3 | Trust ladder + DPA | ADR-0015 |
