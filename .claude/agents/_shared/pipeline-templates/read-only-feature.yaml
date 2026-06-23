@@ -1,0 +1,72 @@
+# WIZOR pipeline — read-only-feature
+# Применяется: фазы P2, P3, P5, P6, P7, P8 (track: read-only)
+# Нет write-доступа к сайту клиента; нет DPA-требований.
+# Specialists fire по наличию домена в фазе.
+
+name: read-only-feature
+version: 1
+applies_to:
+  tracks: [read-only, research]
+  phases: [P2, P3, P5, P6, P7, P8]
+cost_budget_ref: ../cost-budget.yaml
+handoff_schema_ref: ../handoff-schema.md
+
+steps:
+  - id: plan
+    role: planner           # Opus
+    inputs: [phase-spec.md, STATUS.md, HANDOFF.md]
+    produces: PLAN.md
+    retry: { max: 2, on_failure: escalate-to-architect }
+
+  - id: domain-build
+    condition: phase_has_domain_specialist
+    # geo-domain-expert (P3/P6/P7) или crawler-probe-specialist (P2/P5/P6/P8)
+    role: <specialist>      # Sonnet или Opus — по profile.md агента
+    depends_on: [plan]
+    consumes: PLAN.md
+    produces: domain-artifacts
+    notes: "Specialist пишет код домена сам; не ждёт backend-implementer"
+
+  - id: implement
+    role: backend-implementer   # Sonnet
+    depends_on: [domain-build]  # или [plan] если нет specialist
+    consumes: [PLAN.md, domain-artifacts]
+    produces: code-commit
+    retry: { max: 3, on_failure: escalate-to-founder }
+
+  - id: review
+    role: reviewer              # Sonnet (security-линза при флаге)
+    depends_on: [implement]
+    consumes: code-commit
+    produces: review-report
+    max_cycles: 2
+    on_max_exceeded: escalate-to-architect
+
+  - id: verify
+    role: verifier              # Haiku
+    depends_on: [review]
+    condition: review.verdict == approve
+    produces: verify-report
+
+  - id: post-audit             # ОБЯЗАТЕЛЬНО
+    role: auditor               # Opus — 3 линзы (tier 3)
+    depends_on: [verify]
+    lenses: [correctness, security, compliance]
+    produces: AUDIT-REPORT.md
+    verdict_options: [PASS, PASS-WITH-FIXES, BLOCKED]
+
+  - id: memory-update          # ОБЯЗАТЕЛЬНО
+    role: memory-curator        # Haiku
+    depends_on: [post-audit]
+    updates: [STATUS.md, HANDOFF.md, JOURNAL.md, MEMORY-INDEX.md]
+    triggers: [readme-regen, gate-fill]
+
+  - id: pr-approve
+    actor: founder
+    depends_on: [memory-update]
+    tier: 3
+    action: merge-pr
+
+escalation:
+  to: architect
+  then: founder

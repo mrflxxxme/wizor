@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wizor.dev/schemas/gate.frontmatter.v1.json",
+  "title": "WIZOR Phase Gate Frontmatter",
+  "description": "Schema for gate YAML frontmatter per BUILD-CHARTER §8.5. Validates the machine-readable header that memory-curator auto-fills and founder hand-signs.",
+  "type": "object",
+  "required": [
+    "gate",
+    "status",
+    "opened_at",
+    "hard_thresholds",
+    "deliverables",
+    "adr_delta",
+    "risks_delta",
+    "founder_signature"
+  ],
+  "properties": {
+    "gate": {
+      "type": "string",
+      "description": "Gate identifier. Examples: 'P0-to-heavy-autofix', 'A-to-B'.",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "passed", "blocked", "waived"],
+      "description": "pending = открыт, ожидает; passed = founder подписал после выполнения порогов; blocked = пороги не выполнены, ведётся remediation; waived = override основателя с обоснованием в body."
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO-8601 дата (YYYY-MM-DD) создания gate-файла."
+    },
+    "closed_at": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "ISO-8601 дата закрытия (статус изменился с pending); null пока pending."
+    },
+    "founder_signature": {
+      "type": ["string", "null"],
+      "description": "Обязательно при status in [passed, waived]; null при pending или blocked."
+    },
+    "hard_thresholds": {
+      "type": "object",
+      "description": "Обязательные пороговые условия для прохождения gate. Ключи — идентификаторы порогов; значения описывают цель, факт, pass/fail и ссылку на evidence.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["target", "actual", "passed"],
+        "properties": {
+          "target": {
+            "type": ["number", "string", "boolean"],
+            "description": "Требуемое значение (число, булево или строка-сентинел)."
+          },
+          "actual": {
+            "type": ["number", "string", "boolean", "null"],
+            "description": "Измеренное значение на момент оценки gate; null пока pending."
+          },
+          "passed": {
+            "type": ["boolean", "null"],
+            "description": "Вычисленный pass/fail; null пока pending."
+          },
+          "evidence_url": {
+            "type": ["string", "null"],
+            "description": "Ссылка на артефакт-доказательство (скриншот, датасет, отчёт)."
+          },
+          "measured_at": {
+            "type": ["string", "null"],
+            "format": "date",
+            "description": "Дата измерения."
+          },
+          "description": {
+            "type": "string",
+            "description": "Обоснование порога; сохраняется для аудита."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "deliverables": {
+      "type": "array",
+      "description": "Deliverable'ы фазы/gate. Статус авто-синхронизируется memory-curator из roadmap и phase-артефактов.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^D[0-9]+$",
+            "description": "Идентификатор deliverable, например D1, D2."
+          },
+          "name": {
+            "type": "string",
+            "description": "Краткое название deliverable."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "done", "deferred", "cancelled"]
+          },
+          "owner": {
+            "type": "string",
+            "description": "Агент или роль-ответственный."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Дополнительные заметки."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "adr_delta": {
+      "type": "object",
+      "description": "ADR, созданные или пересмотренные в рамках этого gate/фазы.",
+      "required": ["created", "revised"],
+      "properties": {
+        "created": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ADR-[0-9]{4}$"
+          }
+        },
+        "revised": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ADR-[0-9]{4}$"
+          }
+        },
+        "superseded": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^ADR-[0-9]{4}$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "risks_delta": {
+      "type": "object",
+      "description": "Изменения реестра рисков в рамках этого gate/фазы; идентификаторы ссылаются на .planning/risks/.",
+      "required": ["opened", "closed"],
+      "properties": {
+        "opened": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^R-[0-9]+$"
+          }
+        },
+        "closed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^R-[0-9]+$"
+          }
+        },
+        "mitigated": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^R-[0-9]+$"
+          }
+        },
+        "escalated": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^R-[0-9]+$"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

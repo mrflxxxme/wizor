@@ -1,0 +1,85 @@
+# WIZOR pipeline — auto-track-feature
+# Применяется: фаза P10 (track: auto)
+# Требует: DPA акцептован клиентом; compliance-вердикт получен.
+# Tier 4 → 5-линзовый post-audit swarm.
+# GATED: только после прохождения gate P0 (H1–H5).
+
+name: auto-track-feature
+version: 1
+applies_to:
+  tracks: [auto]
+  phases: [P10]
+  gate_required: P0-to-heavy-autofix
+cost_budget_ref: ../cost-budget.yaml
+handoff_schema_ref: ../handoff-schema.md
+
+steps:
+  - id: compliance-pre-check   # ПЕРВЫЙ шаг, блокирующий
+    role: compliance-152fz-specialist   # Opus
+    inputs: [phase-spec.md, dpa-status]
+    produces: compliance-verdict
+    on_non_compliant: BLOCK-ENTIRE-PHASE
+    notes: "DPA и 152-ФЗ проверяются до любого кода"
+
+  - id: plan
+    role: planner               # Opus
+    depends_on: [compliance-pre-check]
+    condition: compliance-verdict == COMPLIANT
+    inputs: [phase-spec.md, STATUS.md, HANDOFF.md]
+    produces: PLAN.md
+    retry: { max: 2, on_failure: escalate-to-architect }
+
+  - id: domain-build-geo
+    role: geo-domain-expert     # Opus
+    depends_on: [plan]
+    produces: patch-artifacts   # что именно применять; FAQ = draft only
+    notes: "Opus нужен для суждения о trust-ladder и границах auto-apply"
+
+  - id: domain-build-cms
+    role: cms-connector-specialist   # Sonnet
+    depends_on: [domain-build-geo]
+    consumes: [PLAN.md, patch-artifacts, compliance-verdict]
+    produces: [wp-plugin, audit-log-schema, rollback-spec]
+
+  - id: implement
+    role: backend-implementer   # Sonnet
+    depends_on: [domain-build-cms]
+    consumes: [PLAN.md, wp-plugin-api-spec]
+    produces: code-commit
+    retry: { max: 3, on_failure: escalate-to-founder }
+
+  - id: review
+    role: reviewer              # Sonnet + security-линза (обязательно для auto-track)
+    depends_on: [implement]
+    security_lens: required     # auto-fix на prod = security-обязательно
+    max_cycles: 2
+    on_max_exceeded: escalate-to-architect
+
+  - id: verify
+    role: verifier              # Haiku
+    depends_on: [review]
+    condition: review.verdict == approve
+    produces: verify-report
+
+  - id: post-audit             # ОБЯЗАТЕЛЬНО — tier 4 = 5 линз
+    role: auditor               # Opus
+    depends_on: [verify]
+    lenses: [correctness, security, compliance, tests, architecture]
+    produces: AUDIT-REPORT.md
+    verdict_options: [PASS, PASS-WITH-FIXES, BLOCKED]
+    notes: "Rollback-rate, idempotency, DPA-gate, audit-log append-only — обязательные линзы"
+
+  - id: memory-update          # ОБЯЗАТЕЛЬНО
+    role: memory-curator        # Haiku
+    depends_on: [post-audit]
+    updates: [STATUS.md, HANDOFF.md, JOURNAL.md, MEMORY-INDEX.md]
+
+  - id: pr-approve
+    actor: founder
+    depends_on: [memory-update]
+    tier: 4                     # Tier 4 = обязательный founder-approve
+    action: merge-pr
+
+escalation:
+  to: architect
+  then: founder

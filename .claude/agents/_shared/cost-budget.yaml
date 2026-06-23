@@ -1,0 +1,87 @@
+# WIZOR — cost-budget policy
+# Источник истины: charter §3.4. Тюнится founder при смене фазы.
+# ADR-0003 ссылается на этот файл (числа только здесь).
+
+version: 1
+last_reviewed: 2026-06-23
+last_reviewed_by: founder
+review_trigger: phase-gate-transition
+
+dev_team:
+  description: >
+    Внутренний dev-loop (planner, implementers, reviewer, verifier, auditor,
+    memory-curator, architect + 6 специалистов on-demand).
+    Активируется только при вызове; on-demand = 0 токенов без вызова.
+
+  per_task:
+    soft_cap_usd: 0.40
+    hard_cap_usd: 1.50
+    notes: |
+      Avg expected: $0.05–0.20 per Sonnet-задача; $0.15–0.60 per Opus-задача.
+      Hard cap = ~3x avg: для retry-storm или длинного Opus-прохода.
+
+  per_day:
+    team_soft_cap_usd: 20
+    team_hard_cap_usd: 50
+    notes: |
+      Рассчитан на активную фазу разработки (~5–15 задач/день).
+      В dormant-фазах реальный расход << soft cap.
+
+  per_month:
+    team_kill_switch_usd: 300
+    notes: |
+      При достижении $300 — автостоп и эскалация к founder.
+      Founder может поднять лимит явным решением (не тихий override).
+
+  stagnation:
+    kill_after_minutes: 30
+    trigger: "нет коммита / нет нового файла / нет handoff-статуса"
+    applies_to: dev_team_agents_only
+    notes: |
+      User-сессии не имеют stagnation kill-switch (пользователь может
+      легально оставить сессию открытой).
+
+  tier_fallback:
+    trigger:
+      - per_task_soft_cap_exceeded
+      - complexity_score_below: 0.30
+      - role_in:
+          - reviewer
+          - frontend-implementer
+          - verifier
+          - devops-infra-specialist
+          - cms-connector-specialist
+          - crawler-probe-specialist
+    fallback_model: sonnet
+    notes: |
+      Sonnet ~10–15x дешевле Opus. Допустимо для механических задач.
+
+  never_fallback:
+    # Opus ВСЕГДА, независимо от бюджета
+    - architect
+    - planner
+    - auditor
+    - compliance-152fz-specialist
+    - llm-router-specialist       # суждение о провайдерах = высокий риск
+    - geo-domain-expert           # суждение о Score-весах и honest-forecast
+    - any_task_with_tag: security
+    - any_task_with_tag: personal_data
+    notes: |
+      Снижение качества на этих ролях создаёт compliance-риск или
+      architectural debt, цена которых >> экономия на модели.
+
+telemetry:
+  emit_events:
+    - task_start
+    - task_complete
+    - cap_breach
+    - fallback_triggered
+    - stagnation_killed
+  partition_by:
+    - role
+    - phase_id
+    - cost_tier   # opus | sonnet | haiku
+
+cost_review_cadence:
+  after_each_phase: true
+  founder_alert_threshold_pct_of_monthly_cap: 60

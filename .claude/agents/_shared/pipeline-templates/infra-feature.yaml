@@ -1,0 +1,84 @@
+# WIZOR pipeline — infra-feature
+# Применяется: фазы P1, P4, P9 (track: infra)
+# Tier 4 → 5-линзовый post-audit; compliance-проверка обязательна.
+# Specialists: devops-infra-specialist + llm-router-specialist (P4) +
+#              compliance-152fz-specialist (P1/P9).
+
+name: infra-feature
+version: 1
+applies_to:
+  tracks: [infra]
+  phases: [P1, P4, P9]
+cost_budget_ref: ../cost-budget.yaml
+handoff_schema_ref: ../handoff-schema.md
+
+steps:
+  - id: compliance-pre-check
+    role: compliance-152fz-specialist   # Opus
+    inputs: [phase-spec.md]
+    produces: compliance-verdict
+    on_non_compliant: BLOCK-ENTIRE-PHASE
+    notes: "Особенно критично для P1 (multi-tenant) и P9 (billing/auth)"
+
+  - id: plan
+    role: planner               # Opus
+    depends_on: [compliance-pre-check]
+    condition: compliance-verdict == COMPLIANT
+    inputs: [phase-spec.md, STATUS.md, HANDOFF.md]
+    produces: PLAN.md
+    retry: { max: 2, on_failure: escalate-to-architect }
+
+  - id: domain-build
+    condition: phase_has_domain_specialist
+    # P1/P9: devops-infra-specialist; P4: llm-router-specialist + devops
+    role: <specialist>          # Sonnet (devops) или Opus (llm-router)
+    depends_on: [plan]
+    consumes: [PLAN.md, compliance-verdict]
+    produces: infra-artifacts   # docker, CI, configs, router
+
+  - id: implement
+    role: backend-implementer   # Sonnet
+    depends_on: [domain-build]
+    consumes: [PLAN.md, infra-artifacts]
+    produces: code-commit
+    retry: { max: 3, on_failure: escalate-to-founder }
+
+  - id: review
+    role: reviewer              # Sonnet + security-линза (обязательно для infra)
+    depends_on: [implement]
+    security_lens: required
+    max_cycles: 2
+    on_max_exceeded: escalate-to-architect
+
+  - id: verify
+    role: verifier              # Haiku
+    depends_on: [review]
+    condition: review.verdict == approve
+    produces: verify-report
+
+  - id: post-audit             # ОБЯЗАТЕЛЬНО — tier 4 = 5 линз
+    role: auditor               # Opus
+    depends_on: [verify]
+    lenses: [correctness, security, compliance, tests, architecture]
+    produces: AUDIT-REPORT.md
+    verdict_options: [PASS, PASS-WITH-FIXES, BLOCKED]
+    standby_invariants:
+      - no_secrets_in_code
+      - rf_data_residency
+      - multi_tenant_isolation
+      - stagnation_30min
+
+  - id: memory-update          # ОБЯЗАТЕЛЬНО
+    role: memory-curator        # Haiku
+    depends_on: [post-audit]
+    updates: [STATUS.md, HANDOFF.md, JOURNAL.md, MEMORY-INDEX.md]
+
+  - id: pr-approve
+    actor: founder
+    depends_on: [memory-update]
+    tier: 4
+    action: merge-pr
+
+escalation:
+  to: architect
+  then: founder
