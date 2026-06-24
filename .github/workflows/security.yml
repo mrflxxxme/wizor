@@ -1,0 +1,35 @@
+name: security
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  secrets-scan:
+    # gitleaks — секреты не должны попадать в код/историю (инвариант §6.9).
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  fs-scan:
+    # trivy — уязвимости в зависимостях/файловой системе репозитория.
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true

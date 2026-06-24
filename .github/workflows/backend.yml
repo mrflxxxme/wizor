@@ -1,0 +1,121 @@
+name: backend
+
+on:
+  push:
+    branches: ["**"]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+  pull_request:
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  quality:
+    # ruff + mypy + bandit + pip-audit + unit-тесты (без сервисов). Цель ≤8 мин.
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -e '.[dev]'
+      - name: Ruff (lint)
+        run: ruff check .
+      - name: Ruff (format)
+        run: ruff format --check .
+      - name: Mypy (strict)
+        run: mypy src
+      - name: Bandit (SAST)
+        run: bandit -q -r src
+      - name: pip-audit (deps)
+        run: pip-audit --skip-editable
+      - name: Pytest (unit)
+        run: pytest -m "not integration"
+
+  integration:
+    # Live-gold (ADR-0018): живой smoke против реальных PG+pgvector/Redis/Celery/Keycloak.
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: wizor
+          POSTGRES_PASSWORD: wizor
+          POSTGRES_DB: wizor
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wizor -d wizor"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      WIZOR_DATA_REGION: ru-central1
+      WIZOR_DATABASE_URL: postgresql+asyncpg://wizor:wizor@localhost:5432/wizor
+      WIZOR_REDIS_URL: redis://localhost:6379/0
+      WIZOR_CELERY_BROKER_URL: redis://localhost:6379/1
+      WIZOR_CELERY_RESULT_BACKEND: redis://localhost:6379/2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -e '.[dev]'
+
+      - name: Alembic upgrade (migration-safety + pgvector)
+        run: alembic upgrade head
+      - name: Seed test tenant
+        run: python -m wizor.iam.seed
+
+      - name: Integration tests (pgvector + multi-tenant isolation AC-6/AC-8)
+        run: pytest -m integration
+
+      - name: Celery live ping (AC-7)
+        run: |
+          celery -A wizor.worker.celery_app worker --loglevel=info -Q default &
+          WORKER_PID=$!
+          for i in $(seq 1 20); do
+            if celery -A wizor.worker.celery_app inspect ping >/dev/null 2>&1; then
+              echo "celery ping OK"; kill $WORKER_PID; exit 0
+            fi
+            sleep 2
+          done
+          echo "celery ping FAILED"; kill $WORKER_PID; exit 1
+
+  keycloak-smoke:
+    # Live Keycloak skeleton: realm wizor-dev импортируется и health=UP (FR-P1 iam).
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Keycloak with realm import
+        run: |
+          docker run -d --name kc -p 8080:8080 -p 9000:9000 \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
+            -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
+            -v "${{ github.workspace }}/infra/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro" \
+            quay.io/keycloak/keycloak:26.0 start-dev --import-realm --health-enabled=true
+      - name: Wait for Keycloak health=UP
+        run: |
+          for i in $(seq 1 40); do
+            if curl -fsS http://localhost:9000/health/ready | grep -q UP; then
+              echo "keycloak ready"; exit 0
+            fi
+            sleep 3
+          done
+          echo "keycloak did not become ready"; docker logs kc | tail -50; exit 1
+      - name: Verify realm wizor-dev imported
+        run: |
+          curl -fsS http://localhost:8080/realms/wizor-dev/.well-known/openid-configuration \
+            | grep -q wizor-dev && echo "realm wizor-dev OK"
