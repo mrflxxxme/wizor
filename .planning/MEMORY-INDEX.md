@@ -28,4 +28,8 @@
 | glossary | термины | `_meta/glossary.md` | продукт + харнесс термины | 2026-06-23 |
 | open-questions | открытые вопросы | `OPEN-QUESTIONS.md` · PRD §16 | 9 гипотез/вопросов к валидации | 2026-06-23 |
 | placeholders | TBD-токены | `PLACEHOLDERS.md` | ключи/юрлицо/инфра до прода | 2026-06-23 |
+| p1-foundation | P1 фундамент (код) | `backend/` · `frontend/` · `infra/` · `gates/P1-foundation.md` | monorepo: FastAPI+PG/pgvector+Redis+Celery+Keycloak/PostHog skeleton, multi-tenant (TenantMixin §6.8), 3 CI workflow; первый продуктовый код | 2026-06-24 |
+| tenancy | multi-tenant паттерн | `backend/src/wizor/core/tenancy.py` · `db/base.py` (TenantMixin) | X-Tenant-Id→request.state.tenant_id (P9: JWT); tenant_id+FK+index на каждой таблице; изоляция на app-level | 2026-06-24 |
+| ci-live-gold | CI как раннер live-gold | `.github/workflows/backend.yml` (job integration) | живой smoke PG/pgvector/Redis/Celery/Keycloak в CI; CI-лог = evidence_url; Docker в сессии недоступен | 2026-06-24 |
+| analytics | PostHog no-op паттерн | `backend/.../analytics/posthog.py` · `frontend/lib/analytics.ts` | пустой ключ → no-op; North Star событие-константы — контракт backend↔frontend; self-host deferred→P7 | 2026-06-24 |
 | patterns | паттерны/pitfalls агентов | `.claude/agents/<role>/memory.md` | заполняется по ходу фаз | — |
