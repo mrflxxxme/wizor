@@ -57,6 +57,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Starlette: последний add_middleware — внешний слой. CORS должен быть внешним,
+    # чтобы preflight (OPTIONS) обрабатывался до остальной логики, поэтому он добавлен
+    # ПОСЛЕ tenancy (tenancy → внутренний слой).
+    app.add_middleware(TenancyMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -64,7 +68,6 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.add_middleware(TenancyMiddleware)
 
     # /metrics — Prometheus exposition (NFR observability).
     app.mount("/metrics", make_asgi_app())

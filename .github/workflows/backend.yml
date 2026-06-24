@@ -79,7 +79,9 @@ jobs:
         run: python -m wizor.iam.seed
 
       - name: Integration tests (pgvector + multi-tenant isolation AC-6/AC-8)
-        run: pytest -m integration
+        # --no-cov: порог coverage (fail_under=70) применяется к unit-набору в job
+        # quality; на integration-only подмножестве он бы ложно падал.
+        run: pytest -m integration --no-cov
 
       - name: Celery live ping (AC-7)
         run: |
