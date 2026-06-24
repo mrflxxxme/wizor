@@ -40,3 +40,4 @@
 - **Процесс:** оркестратор совмещал implementer-роли (infra-скаффолд когерентен) + независимые reviewer/auditor суб-агенты на гейтах качества (где мультиагентность даёт максимум).
 - **Next:** подтвердить зелёный CI финального коммита → обновить CI-зависимые пороги гейта → founder подписывает `gates/P1-foundation.md`. Затем P2 (Crawler) или P0 (Discovery, требует founder).
 - **Refs:** P1; `roadmap/P01-foundation.md`; `gates/P1-foundation.md`; ветка `claude/quirky-allen-meae1a`.
+- **Регламент (по ходу):** запрос founder — PR создавать сразу **открытым, не draft**, чтобы чеки прошли немедленно и founder получал только итог. Оформлено **ADR-0019** (дополняет ADR-0017, amends ADR-0009); пропагировано в CLAUDE.md (Git/PR), conventions (Git и PR), charter (§4 шаг 9 + decision-log #20 + v1.3), decisions/README, MEMORY-INDEX. PR #1 переведён из draft в open.

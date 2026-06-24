@@ -1,4 +1,4 @@
-<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 18 принятых решений: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия) + ADR-0018 (тесты+live-gold перед PR). Все accepted, 2026-06-23. -->
+<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 19 принятых решений: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия) + ADR-0018 (тесты+live-gold перед PR) + ADR-0019 (PR открыт сразу, не draft). ADR-0001–0018 — 2026-06-23, ADR-0019 — 2026-06-24. -->
 
 # ADR Index — WIZOR
 
@@ -24,6 +24,7 @@
 | ADR-0016 | llms-txt-not-citation-weighted | llms.txt не в citation-весе/Score; honest-uncertainty: N≥5+CI, нет гарантированных Visibility-% | accepted | 2026-06-23 |
 | ADR-0017 | phase-gate-only-autonomy | Человек-ревью только на гейтах фаз; внутри фазы полная автономия (мердж/аудит/доп-сессии сами); amends ADR-0009 | accepted | 2026-06-23 |
 | ADR-0018 | mandatory-tests-and-live-gold-before-pr | Обязательные self-run тесты + live-gold (где возможно) перед PR; evidence в гейт; amends ADR-0017 | accepted | 2026-06-23 |
+| ADR-0019 | open-pr-not-draft | PR создаётся сразу открытым (ready-for-review), не draft; чеки/ревью немедленно; founder видит итог; дополняет ADR-0017, amends ADR-0009 | accepted | 2026-06-24 |
 
 ## Связи с Charter §2 (decision log)
 
@@ -47,6 +48,7 @@
 | 16 | Модель доступа | ADR-0012 |
 | 18 | Автономия / human-in-the-loop (гейт-only) | ADR-0017 |
 | 19 | Тесты + live-gold перед PR | ADR-0018 |
+| 20 | Состояние PR (open, не draft) | ADR-0019 |
 | Product-1 | Multi-tenancy | ADR-0013 |
 | Product-2 | Dual-geo probe | ADR-0014 |
 | Product-3 | Trust ladder + DPA | ADR-0015 |
