@@ -29,32 +29,32 @@ hard_thresholds:
     description: "ruff + mypy --strict + bandit (backend), eslint + tsc (frontend) — все зелёные локально."
   ci_pipelines_green:
     target: "green"
-    actual: null
-    passed: null
-    evidence_url: null
-    measured_at: null
-    description: "AC-3: 3 workflow (backend/frontend/security) зелёные, каждый ≤8 мин. evidence_url = ссылка на CI-run финального коммита (заполняется после прогона)."
+    actual: "green"
+    passed: true
+    evidence_url: "https://github.com/mrflxxxme/wizor/actions/runs/28076492564"
+    measured_at: "2026-06-24"
+    description: "AC-3: workflow backend(quality+integration+keycloak-smoke)/frontend/security зелёные на коммите 76641f6. Все jobs success, каждый ≤8 мин."
   multitenant_isolation:
     target: 0
-    actual: null
-    passed: null
-    evidence_url: null
-    measured_at: null
-    description: "AC-6: cross-tenant утечки нет (0 чужих строк). Live-gold: CI integration-тест (pgvector pg16). evidence_url = CI-run."
+    actual: 0
+    passed: true
+    evidence_url: "https://github.com/mrflxxxme/wizor/actions/runs/28076492564"
+    measured_at: "2026-06-24"
+    description: "AC-6: cross-tenant утечки нет (0 чужих строк). Live-gold: CI integration job success (pgvector pg16, тест second-tenant)."
   pgvector_active:
     target: 3
-    actual: null
-    passed: null
-    evidence_url: null
-    measured_at: null
-    description: "AC-8: vector_dims('[1,2,3]'::vector)=3. Live-gold: CI integration-тест. evidence_url = CI-run."
+    actual: 3
+    passed: true
+    evidence_url: "https://github.com/mrflxxxme/wizor/actions/runs/28076492564"
+    measured_at: "2026-06-24"
+    description: "AC-8: vector_dims('[1,2,3]'::vector)=3. Live-gold: CI integration job success."
   celery_ping:
     target: "pong"
-    actual: null
-    passed: null
-    evidence_url: null
-    measured_at: null
-    description: "AC-7: живой Celery worker отвечает на inspect ping. Live-gold: CI integration job. evidence_url = CI-run."
+    actual: "pong"
+    passed: true
+    evidence_url: "https://github.com/mrflxxxme/wizor/actions/runs/28076492564"
+    measured_at: "2026-06-24"
+    description: "AC-7: живой Celery worker отвечает на inspect ping. Live-gold: CI integration job success."
   audit_tier4:
     target: "PASS"
     actual: "PASS-WITH-FIXES"
@@ -130,10 +130,10 @@ Exit-gate фазы **P1 (Foundation)** — поднят рабочий dev+CI-с
 | Frontend coverage (AC-2) | ≥70% | 100% | ✅ PASS |
 | Lint/type/SAST | green | green | ✅ PASS (локально) |
 | Audit tier-4 (5 линз + §6) | PASS | PASS-WITH-FIXES | ✅ PASS |
-| CI 3 workflow (AC-3) | green ≤8мин | — | ⏳ ожидает CI-прогона финального коммита |
-| Multi-tenant изоляция (AC-6) | 0 утечек | — | ⏳ live-gold в CI |
-| pgvector (AC-8) | dims=3 | — | ⏳ live-gold в CI |
-| Celery ping (AC-7) | pong | — | ⏳ live-gold в CI |
+| CI 3 workflow (AC-3) | green ≤8мин | green (76641f6) | ✅ PASS |
+| Multi-tenant изоляция (AC-6) | 0 утечек | 0 (CI live-gold) | ✅ PASS |
+| pgvector (AC-8) | dims=3 | 3 (CI live-gold) | ✅ PASS |
+| Celery ping (AC-7) | pong | pong (CI live-gold) | ✅ PASS |
 | `make dev-bootstrap` ≤600с (AC-1) | ≤600с | — | ⚠️ DEFERRED (DLG-2: нет Docker в сессии) |
 | PostHog UI событие (AC-5) | proven | deferred | ⚠️ DEFERRED (DLG-1: self-host → P7) |
 
@@ -144,12 +144,12 @@ Exit-gate фазы **P1 (Foundation)** — поднят рабочий dev+CI-с
 
 ## Founder decision area
 
-_(Founder заполняет при подписи: подтверждение зелёного CI на финальном коммите; ок ли принять DLG-1/DLG-2 как отложенные; founder_signature + дата.)_
+CI финального коммита **76641f6** зелёный (все jobs success) — CI-зависимые пороги обновлены (`passed: true`). Остаётся решение founder: принять ли DLG-1 (PostHog self-host→P7) и DLG-2 (`make dev-bootstrap` на машине с Docker) как отложенные, и подписать гейт.
 
 ## Sign-off
 
-- **Статус:** pending
+- **Статус:** pending (готов к подписи — все измеримые пороги PASS, deferred задокументированы)
 - **Подпись основателя:** _pending_
 - **Дата:** _pending_
 
-> Перед подписью: проверить, что CI-прогон финального коммита ветки `claude/quirky-allen-meae1a` зелёный (3 workflow), и обновить CI-зависимые `hard_thresholds` (`actual`/`passed`/`evidence_url`).
+> Все hard_thresholds: 7 PASS (coverage×2, lint/type/sast, audit, ci, isolation, pgvector, celery — измерены), 2 deferred (bootstrap, posthog_ui — founder action). Для закрытия: founder ставит `status: passed` + `founder_signature` + `closed_at`.
