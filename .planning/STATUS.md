@@ -1,17 +1,17 @@
-<!-- HEAD-SUMMARY (≤500т): Rolling-состояние WIZOR. Сейчас: scaffold v1.0 собран (2026-06-23) — харнесс ИИ-команды + полное ТЗ (P0–P10) готовы; кода продукта ещё нет. Следующий шаг: founder запускает Phase 0 (Discovery) ИЛИ заполняет критичные PLACEHOLDERS. История фаз — в PHASE-HISTORY.md. Обновляет этот файл только memory-curator на шаге 8 цикла. -->
+<!-- HEAD-SUMMARY (≤500т): Rolling-состояние WIZOR. Сейчас: P1 Foundation реализован (2026-06-24) — monorepo (FastAPI+PG/pgvector+Redis+Celery+Keycloak/PostHog skeleton, multi-tenant, 3 CI workflow); первый продуктовый код. Review APPROVE / Audit PASS-WITH-FIXES (10/10 инвариантов) / verify зелёный локально + live-gold в CI. Ждёт: зелёный CI финального коммита + founder_signature на gates/P1-foundation.md. История фаз — в PHASE-HISTORY.md. Обновляет этот файл только memory-curator на шаге 8 цикла. -->
 
 # STATUS — WIZOR
 
-**Обновлено:** 2026-06-23 · сессия `regulation-update-adr0018` · @claude-opus
-**Стадия:** Scaffold v1.0 + регламенты ADR-0017 (gate-only автономия) + ADR-0018 (тесты+live-gold перед PR) → готов к Phase 0.
+**Обновлено:** 2026-06-24 · сессия `P1-foundation` · @claude-opus
+**Стадия:** P1 Foundation реализован (monorepo + CI); первый продуктовый код. Ждёт зелёный CI + `founder_signature` на гейте P1.
 
 ## Прогресс роадмапа
 
 | Фаза | Статус | Гейт |
 |---|---|---|
 | **Scaffold** (харнесс + ТЗ) | ✅ **Завершён** (2026-06-23) | — |
-| P0 — Discovery & De-risking | ⏳ Готов к старту | `gates/P0-to-heavy-autofix.md` |
-| P1 — Foundation | ⏳ Pending | — |
+| P0 — Discovery & De-risking | ⏳ Готов к старту (нужен founder) | `gates/P0-to-heavy-autofix.md` |
+| P1 — Foundation | 🟢 **Реализован, ждёт гейт** (2026-06-24) | `gates/P1-foundation.md` (pending) |
 | P2 — Crawler/Аудит | ⏳ Pending | — |
 | P3 — AI-Readiness Score | ⏳ Pending | — |
 | P4 — LLM-router | ⏳ Pending | — |
@@ -26,15 +26,16 @@
 
 ## Текущая активная фаза
 
-Нет активной фазы. Харнесс собран; ожидается решение founder о старте **P0 (Discovery)** — он может идти параллельно с P1–P5 (инфра), тяжёлый auto-fix (P10) гейтится прохождением P0.
+**P1 (Foundation)** — код реализован на ветке `claude/quirky-allen-meae1a`, draft PR открыт. Прошёл review (APPROVE-WITH-COMMENTS) + audit (PASS-WITH-FIXES, 10/10 инвариантов) + verify (локально зелёный; live-gold стека — в CI). Фаза закрывается founder-подписью гейта после подтверждения зелёного CI.
 
 ## Блокеры / действия founder
 
 | # | Действие | Где |
 |---|---|---|
-| 1 | Запустить P0 (Discovery) — 30 CustDev-интервью + тех-спайки | `roadmap/P00-discovery.md` |
-| 2 | Заполнить критичные TBD-токены (Yandex Cloud, ЮKassa, LLM-ключи, юрлицо) | `PLACEHOLDERS.md` |
-| 3 | Снять открытые вопросы продукта | `OPEN-QUESTIONS.md` |
+| 1 | **Подписать гейт P1** — CI финального коммита 76641f6 зелёный (подтверждён), 8 порогов PASS | `gates/P1-foundation.md` (`founder_signature`) |
+| 2 | Принять/оспорить deferred: DLG-1 PostHog self-host (→P7), DLG-2 `make dev-bootstrap` локально (нужен Docker) | гейт P1, секция deferred_live_gold |
+| 3 | Запустить P0 (Discovery) — 30 CustDev-интервью + тех-спайки (требует founder) | `roadmap/P00-discovery.md` |
+| 4 | Заполнить критичные TBD-токены (Yandex Cloud, ЮKassa, LLM-ключи, юрлицо) | `PLACEHOLDERS.md` |
 
 ## Топ-риски (PRD §14)
 

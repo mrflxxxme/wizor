@@ -41,6 +41,7 @@
 | Ветки | `phase/PNN-slug` (фазы); `fix/<slug>` (баги); `hotfix/<slug>` (prod) |
 | Commits | **Conventional Commits** (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`); footer `Refs: PNN, ADR-NNNN` |
 | PR title | `[PNN] <описание>` |
+| Состояние PR | **открыт (ready-for-review), НЕ draft** — после пуша чеки/AI-ревью стартуют сразу; агент чинит фейлы автономно; founder получает только итог (ADR-0019) |
 | Размер PR | < 500 строк (исключения: генерируемый код, миграции) |
 | Merge | squash-merge |
 

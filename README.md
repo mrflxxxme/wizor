@@ -9,9 +9,9 @@
 <!-- STATUS:BEGIN (авто-обновляется memory-curator на шаге 8 цикла; вручную не править) -->
 ## 📍 Статус
 
-**Стадия:** Scaffold v1.0 ✅ (2026-06-23) — харнесс + ТЗ собраны, кода продукта нет.
-**Активная фаза:** нет · **Следующая:** P0 — Discovery & De-risking.
-**Действия founder:** запустить P0 ([`roadmap/P00-discovery.md`](.planning/roadmap/P00-discovery.md)) · заполнить [`PLACEHOLDERS.md`](.planning/PLACEHOLDERS.md).
+**Стадия:** P1 Foundation 🟢 реализован (2026-06-24) — monorepo (FastAPI+PG/pgvector+Redis+Celery+Keycloak/PostHog skeleton, multi-tenant, 3 CI workflow); первый продуктовый код.
+**Активная фаза:** P1 (ждёт зелёный CI + founder-подпись гейта) · **Следующая:** P2 — Crawler/Аудит, либо P0 — Discovery.
+**Действия founder:** подписать [`gates/P1-foundation.md`](.planning/gates/P1-foundation.md) после проверки CI · запустить P0 ([`roadmap/P00-discovery.md`](.planning/roadmap/P00-discovery.md)) · заполнить [`PLACEHOLDERS.md`](.planning/PLACEHOLDERS.md).
 <!-- STATUS:END -->
 
 ---

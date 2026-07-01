@@ -39,6 +39,7 @@ Scope → Plan(pinned) → Domain-build(специалист сам пишет) 
 ## Git / PR / CI
 
 - Ветка-на-фазу `phase/PNN-slug`; атомарные коммиты (Conventional Commits, футер `Refs: PNN, ADR-NNNN`).
+- **PR создаётся сразу открытым (ready-for-review), НЕ draft** (ADR-0019): после пуша CI-чеки и AI-ревью стартуют немедленно, агент чинит фейлы автономно в цикле, founder получает только итог (зелёный PR + гейт на подпись).
 - AI `reviewer`+`auditor` ревьюят в PR; **внутри фазы PR авто-мерджятся** (CI + reviewer + auditor PASS); **человек-ревью только на гейте фазы** (`founder_signature`) — ADR-0017.
 - CI-гейты: lint · type-check · tests · security/secrets · migration-safety. Любой красный = блок мерджа.
 

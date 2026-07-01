@@ -1,0 +1,14 @@
+# Dev reverse-proxy: /api/* → backend, остальное → frontend.
+:80 {
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+	# DEV ONLY: /metrics проксируется без аутентификации. На проде ограничить
+	# скрейп-таргетом/внутренней сетью (не публиковать Prometheus-метрики наружу).
+	handle /metrics {
+		reverse_proxy backend:8000
+	}
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
