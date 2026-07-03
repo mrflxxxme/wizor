@@ -1,0 +1,96 @@
+# WIZOR autonomy tripwire — задняя растяжка (ADR-0021 D2, порт ORIION ADR-037).
+#
+# Runner (Claude в автономной сессии) перед auto-merge классифицирует diff PR'а
+# по этим path-глобам. Совпадение с ЛЮБОЙ категорией → НЕ auto-merge:
+# фаза доводится до зелёного, пишется в RUN-QUEUE.md + push-notify, ждёт founder 1-клик /ack.
+# Ничего не совпало + все гейты зелёные → auto-merge.
+#
+# Классификатор — `git diff --name-only origin/main...HEAD`, сверка через fnmatch
+# (scripts/autonomy/classify_tripwire.py; источник категорий — ЭТОТ файл + ADR-0021 §D2).
+# Меняешь список — правь ADR-0021.
+#
+# Растяжка = операционализация стоячих инвариантов charter §6. Категории 6–8 —
+# WIZOR-специфичные (auto-fix / probe-geo / ПДн), которых нет в ORIION: это наш
+# уникальный риск-surface (moat-запись на чужой prod, RU-IP-утечка, 152-ФЗ).
+
+version: 1
+policy: pause-and-ack        # matched → prepare + green + wait for founder /ack
+default_when_unmatched: auto-merge
+
+categories:
+  db_migrations:
+    reason: "Миграция БД — риск по существующим таблицам / RLS-политикам (§6.8 multi-tenant)"
+    globs:
+      - "backend/migrations/versions/**"
+    runner_nuance: |
+      Ack ОБЯЗАТЕЛЕН, если миграция: ALTER/DROP существующей таблицы/колонки,
+      изменение RLS/tenant-политики, backfill/data-migration, index на горячей таблице.
+      classify_tripwire.py делает КОНТЕНТНУЮ проверку upgrade() и АВТО-СНИМАЕТ
+      db_migrations, если КАЖДАЯ затронутая миграция — доказуемо чистый greenfield
+      CREATE (новые таблицы + их tenant-RLS с нуля). Fail-closed: любой f-string,
+      ALTER/DROP/backfill, index на не-этой таблице, неизвестный вызов или
+      нечитаемый файл → ack сохраняется. Для авто-мёржа pure-CREATE миграций
+      RLS/trigger-boilerplate писать через literal-хелперы `backend/migrations/_rls.py`,
+      а НЕ через f-string-цикл (неинспектируем → всегда ack).
+
+  auth_iam:
+    reason: "Auth / IAM / multi-tenancy — surface аутентификации и tenant-изоляции (§6.8, ADR-0013)"
+    globs:
+      - "backend/src/wizor/iam/**"
+      - "backend/src/wizor/core/tenancy.py"
+      - "backend/migrations/versions/iam/**"
+
+  billing_money:
+    reason: "Billing / денежные пути — тарифы, entitlements дорожек, ЮKassa (ADR-0012)"
+    globs:
+      - "backend/src/wizor/billing/**"
+      - "backend/migrations/versions/billing/**"
+
+  secrets_keys_crypto:
+    reason: "Секреты / ключи / шифрование — LLM-ключи, master-key, env (§6.9)"
+    globs:
+      - "**/*secret*"
+      - "**/*crypto*"
+      - "**/.env*"
+      - "backend/src/wizor/llm_router/**"
+      - ".claude/agents/_shared/cost-budget.yaml"
+
+  public_api_contracts:
+    reason: "Слом публичных API/data-контрактов bounded-context (charter §7)"
+    globs:
+      - ".planning/contracts/**"
+
+  autofix_writes:
+    reason: "Auto-track запись на чужой сайт — moat + НЕОБРАТИМОЕ внешнее действие (§6.1/6.3, ADR-0015/0017 §6)"
+    globs:
+      - "backend/src/wizor/connectors/**"
+      - "backend/src/wizor/autofix/**"
+      - "backend/migrations/versions/autofix/**"
+    runner_nuance: |
+      Любое касание write-пути к клиентскому CMS = ack, БЕЗ послаблений. Реальное
+      применение правки на чужой prod вообще вне dev-автономии (ADR-0017 §6) —
+      product-runtime под trust-ladder+DPA (ADR-0015). Растяжка ловит уже КОД
+      этого пути на ревью.
+
+  probe_geo:
+    reason: "Dual-geo probe egress — ноль РФ-IP к ChatGPT/Perplexity (§6.4, ADR-0014)"
+    globs:
+      - "backend/src/wizor/probe/**"
+      - "infra/**probe**"
+      - "infra/**egress**"
+
+  pdn_compliance:
+    reason: "152-ФЗ: ПДн-резидентность / DPA / consent / audit-log (§6.3/6.6, ADR-0015)"
+    globs:
+      - "**/*compliance*"
+      - "**/*dpa*"
+      - "backend/src/wizor/**/consent*"
+      - "backend/src/wizor/**/audit_log*"
+
+# Notes:
+# - Контексты src/wizor/{crawler,scoring,metrics,recommendations,patches,verification,
+#   notifications} НЕ в растяжке — обычная read-only внутренняя логика, auto-merge при
+#   зелёных гейтах. Их МИГРАЦИИ падают под db_migrations выше (любая versions/** = ack v1).
+# - Frontend (frontend/**) целиком вне растяжки на старте (нет денег/секретов/auth на
+#   клиенте — auth-токены плечо в iam). Пересмотреть при появлении client-side crypto.
+# - llms.txt / citation-веса — НЕ растяжка, но проверяются auditor'ом (§6.5 инвариант).

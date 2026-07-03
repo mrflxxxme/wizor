@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wizor.ru/schemas/autonomy-evidence.v1.json",
+  "title": "WIZOR autonomy gate evidence artifact",
+  "description": "Per ADR-0021 D3 (порт ORIION ADR-037). Emitted by a local-only gate (live-gold crawl/probe, Docker integration, adversarial audit) that GitHub CI cannot run. Committed to the PR branch under evidence/<gate>.json. The `evidence` CI job asserts freshness (head_sha == PR head) + verdict == PASS for every gate the phase declares in evidence/manifest.json. Makes ADR-0018 live-gold un-fakeable at merge and doubles as the founder's post-hoc audit trail.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "gate", "head_sha", "timestamp", "verdict"],
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "Bump when the shape changes; verify_evidence.py pins this."
+    },
+    "gate": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Stable gate id, matches an entry in evidence/manifest.json required_gates. WIZOR gates: live_golden_crawl, live_golden_probe, docker_integration, adversarial_audit."
+    },
+    "head_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Full 40-char SHA of the commit the gate actually ran against. MUST equal the PR head SHA at CI time, else the evidence is stale and the gate fails."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC when the gate completed."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "FAIL"],
+      "description": "PASS is the only value that lets the `evidence` CI job go green for this gate."
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0,
+      "description": "LLM/infra spend to produce this evidence (funded live-gold crawl/probe). Feeds the per-run budget audit (cost-budget.yaml)."
+    },
+    "runner": {
+      "type": "string",
+      "description": "Who produced it — agent role / script name (e.g. crawler-probe-specialist, scripts/live_golden_probe.py, auditor)."
+    },
+    "details": {
+      "description": "Free-form gate-specific payload: crawl/probe golden pass counts, N>=5+CI uncertainty summary, reviewer/auditor verdicts + refute-by-default confirmation, integration suite summary, etc.",
+      "type": ["object", "string", "array"]
+    }
+  }
+}

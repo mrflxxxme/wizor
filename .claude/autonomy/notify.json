@@ -1,0 +1,4 @@
+{
+  "_comment": "ADR-0021 D8 phone-ack канал (шаблон). FOUNDER ACTION: впиши telegram_chat_id — chat founder'а с спаренным ботом; runner шлёт туда 5 interrupt-событий (в дополнение к desktop PushNotification + RUN-QUEUE). Low-sensitivity (chat_id бесполезен без bot-token, который живёт вне репо). Пустой chat_id = telegram-канал выключен, остаётся desktop push + RUN-QUEUE (runner не блокируется на отсутствии). Коммитим, чтобы runner-worktrees наследовали.",
+  "telegram_chat_id": ""
+}

@@ -43,9 +43,10 @@ Scope → Plan(pinned) → Domain-build(специалист сам пишет) 
 - AI `reviewer`+`auditor` ревьюят в PR; **внутри фазы PR авто-мерджятся** (CI + reviewer + auditor PASS); **человек-ревью только на гейте фазы** (`founder_signature`) — ADR-0017.
 - CI-гейты: lint · type-check · tests · security/secrets · migration-safety. Любой красный = блок мерджа.
 
-## Автономия (ADR-0017)
+## Автономия (ADR-0017 · исполняемый слой ADR-0020 · runner ADR-0021)
 
 - **Человек — только на гейтах фаз.** Внутри фазы агенты автономны: планируют, пишут, ревьюят, аудируют и **мерджат PR сами** (зелёный CI + `reviewer` APPROVE + `auditor` PASS). Per-PR аппрув человека упразднён.
+- **Автономия ИСПОЛНЯЕМА, не только описана.** `.claude/commands/autonomy/` (`/autonomy:run · :discuss · :ack · :heal`) гоняют 9-шаговый цикл сцеплено; строгий гейт-стек — merge-authority (порт ORIION ADR-037). Предохранители — `.claude/autonomy/`: tripwire (8 категорий → 1-клик `/ack`) · коммит-привязанный evidence (усиливает live-gold) · escalation-policy · judge-панель (судья=`auditor`) · self-healing (auto-revert) · RUN-QUEUE+notify. Спавн ролей — `scripts/autonomy/load_role.py` (из `<role>/`-доков, без дублей). Машина ВЫКЛ; вооружается founder'ом (`.claude/autonomy/README.md` §Вооружение). Decision-log: `.planning/_session-context/DECISIONS-LOG.md`.
 - **Перед PR — обязательно self-run тесты + live-gold** (где возможно), evidence записан (ADR-0018); без зелёного verify (шаг 6) PR не поднимается; live-gold невозможен → явный `deferred_live_gold` в гейт, НЕ тихий пропуск. Автономность = подтверждённая результатами.
 - **Доп-сессии Claude Code** разрешены: Agent tool (параллельные независимые задачи) и headless `claude -p` (полностью независимая сессия); при ~120 KB контекста — handoff → свежая сессия. Guardrails: глубина спавна ≤ 2, ≤ 8 одновременных, cost/stagnation kill-switch, каждый юнит пишет handoff.
 - **Эскалация — исключение:** рутинное «проверь работу» НЕ неси к founder (это `reviewer`/`auditor`); к founder — только реальный блокер или его территория, асинхронно (флаг в HANDOFF).

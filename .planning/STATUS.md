@@ -1,9 +1,9 @@
-<!-- HEAD-SUMMARY (≤500т): Rolling-состояние WIZOR. Сейчас: P1 Foundation реализован (2026-06-24) — monorepo (FastAPI+PG/pgvector+Redis+Celery+Keycloak/PostHog skeleton, multi-tenant, 3 CI workflow); первый продуктовый код. Review APPROVE / Audit PASS-WITH-FIXES (10/10 инвариантов) / verify зелёный локально + live-gold в CI. Ждёт: зелёный CI финального коммита + founder_signature на gates/P1-foundation.md. История фаз — в PHASE-HISTORY.md. Обновляет этот файл только memory-curator на шаге 8 цикла. -->
+<!-- HEAD-SUMMARY (≤500т): Rolling-состояние WIZOR. Сейчас (2026-07-03): интегрирована автономная методология ORIION (ADR-037) → ADR-0020 (исполняемый слой: команды/хуки/role-loader) + ADR-0021 (автономный runner: tripwire/evidence/escalation/judge/heal). Слой установлен ВЫКЛ, ждёт вооружения founder'ом (.claude/autonomy/README §Вооружение). До этого: P1 Foundation реализован+вмёржен (monorepo FastAPI+PG/pgvector+Redis+Celery+Keycloak/PostHog, multi-tenant, 3 CI). История фаз — в PHASE-HISTORY.md. Обновляет этот файл только memory-curator на шаге 8 цикла. -->
 
 # STATUS — WIZOR
 
-**Обновлено:** 2026-06-24 · сессия `P1-foundation` · @claude-opus
-**Стадия:** P1 Foundation реализован (monorepo + CI); первый продуктовый код. Ждёт зелёный CI + `founder_signature` на гейте P1.
+**Обновлено:** 2026-07-03 · сессия `oriion-methodology-integration` · @claude-opus
+**Стадия:** Интегрирована автономная методология ORIION (ADR-037) → **ADR-0020** (исполняемый слой) + **ADR-0021** (автономный runner). `.claude/autonomy/` + `scripts/autonomy/` (8 скриптов, py_compile+smoke зелёные) + `/autonomy:*` команды установлены **ВЫКЛ** (founder-armed). До этого: P1 Foundation реализован+вмёржен (PR #1), ждёт `founder_signature` на гейте P1.
 
 ## Прогресс роадмапа
 
@@ -32,6 +32,7 @@
 
 | # | Действие | Где |
 |---|---|---|
+| 0 | **Ревью + (опц.) вооружение автономной машины** — `cp settings.recommended.json → .claude/settings.json` + `session-start.hook.sh → .claude/hooks/`; опц. premerge-хук + branch protection + `notify.json` | `.claude/autonomy/README.md` §Вооружение |
 | 1 | **Подписать гейт P1** — CI финального коммита 76641f6 зелёный (подтверждён), 8 порогов PASS | `gates/P1-foundation.md` (`founder_signature`) |
 | 2 | Принять/оспорить deferred: DLG-1 PostHog self-host (→P7), DLG-2 `make dev-bootstrap` локально (нужен Docker) | гейт P1, секция deferred_live_gold |
 | 3 | Запустить P0 (Discovery) — 30 CustDev-интервью + тех-спайки (требует founder) | `roadmap/P00-discovery.md` |
