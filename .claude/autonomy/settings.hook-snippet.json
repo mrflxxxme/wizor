@@ -1,0 +1,16 @@
+{
+  "_comment": "ADR-0021 D2 — pre-merge tripwire hook (defense-in-depth поверх явного classify-шага runner'а). FOUNDER ACTION чтобы вооружить: смёржь ключ `hooks` ниже в `.claude/settings.json` (создай файл из settings.recommended.json, если нет). Claude НЕ self-install'ит hook-config — это намеренно founder-owned переключатель. RUNTIME: premerge_hook.py вызывает classify_tripwire.py, который использует PyYAML — доступно через backend-venv или `uv run --project backend`. Убедись, что PyYAML установлен в backend-окружении перед вооружением, иначе хук fail-closed (блокирует мёрж) на любой Bash-команде мёржа. Тест перед арм: `python scripts/autonomy/premerge_hook.py` на тестовом PR.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/autonomy/premerge_hook.py"
+          }
+        ]
+      }
+    ]
+  }
+}

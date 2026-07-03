@@ -1,28 +1,24 @@
 # HANDOFF — снапшот сессии
 
-**Обновлено:** 2026-06-24 · `P1-foundation` · @claude-opus
+**Обновлено:** 2026-07-03 · `oriion-methodology-integration` · @claude-opus
 
 ## Состояние
-P1 Foundation реализован — первый продуктовый код. Monorepo: backend (FastAPI/PG+pgvector/Redis/Celery/PostHog), frontend (Next.js 15), infra (docker-compose, Keycloak/PostHog skeleton), 3 CI workflow. Ветка `claude/quirky-allen-meae1a`, draft PR открыт. Ждёт зелёный CI финального коммита + `founder_signature` на `gates/P1-foundation.md`.
+Интегрирована **автономная методология ORIION** (ADR-037) в WIZOR — по итогам founder-интервью 2026-07-03 (полноценно, lean, ORIION-репо добавлен как источник). Два ADR: **ADR-0020** (исполняемый слой: slash-команды, SessionStart-хук, permission-allowlist, role-loader) + **ADR-0021** (автономный многофазный runner — порт ADR-037: tripwire · коммит-привязанный evidence · escalation-policy · judge-панель · self-healing · RUN-QUEUE). Машина установлена **ВЫКЛЮЧЕННОЙ** (founder-armed). Ветка `claude/oriion-methodology-integration-o2dp8a`.
 
 ## Что сделано
-- **Backend:** `/health`(+X-Tenant-Id), `/metrics`, РФ-резидентность в config (NFR-1), TenancyMiddleware, SQLAlchemy 2.x async + TenantMixin (§6.8), IAM tenants/users/sites (FK+index), Alembic+pgvector, seed, Celery ping, PostHog no-op. 10 unit, cov 86.81%.
-- **Frontend:** Next.js 15.5.19/React 19/TS strict, PostHog-провайдер (no-op), North Star событие-контракт, health-страница. 6 vitest, cov 100%.
-- **Infra/CI:** compose (healthchecks), GitHub Actions (backend+integration live-gold, frontend, security), Makefile, pre-commit.
-- **Гейты качества:** review APPROVE-WITH-COMMENTS; audit PASS-WITH-FIXES (5 линз, 10/10 инвариантов); фиксы в цикле. Evidence: `_session-context/VERIFY-P1-2026-06-24.md`, `_session-context/AUDIT-2026-06-24-P1/`.
+- **`.claude/autonomy/`** — tripwire.yaml (8 категорий: 5 ORIION + WIZOR autofix/probe-geo/ПДн) · evidence-schema.json · escalation-policy.md · judge-panel.md (судья=`auditor`) · README (§Вооружение) · BUILD-PLAN · settings.recommended.json + session-start.hook.sh + settings.hook-snippet.json + notify.json (все founder-armed).
+- **`scripts/autonomy/`** — 8 скриптов портированы из ORIION (verify_evidence · classify_tripwire · premerge_hook · run_queue · log_decision · load_role · check_main_health · provision_env). py_compile + smoke зелёные: load_role видит 14 ролей WIZOR, verify_evidence exit 0, classify чистый JSON, log_decision создал DECISIONS-LOG (записан сам факт интеграции).
+- **`.claude/commands/autonomy/`** — run · discuss · ack · heal (адаптированы под 9-шаговый цикл, 14-ростер, CI-чеки backend/frontend/security/evidence).
+- **CI** — `.github/workflows/evidence.yml` (D3 gate-integrity). **Governance** — charter §2/§11 +v1.4, CLAUDE.md, MEMORY-INDEX (+5 тегов), STATUS.
+- Адаптации lean (Q3): role-loader вместо flat-суб-агентов; `auditor` вместо `evaluator`; PNN-фазы; §6-инварианты → tripwire-категории.
 
 ## Следующее действие
-**Founder:** проверить зелёный CI → обновить CI-зависимые пороги гейта → подписать `gates/P1-foundation.md`. Затем P2 (Crawler) или P0 (Discovery).
-
-## Deferred (founder action)
-- **DLG-1** PostHog self-host UI (AC-5) → P7/прод (поднять инстанс + ключ).
-- **DLG-2** `make dev-bootstrap` ≤600с → прогнать на машине с Docker (в сессии DinD нет).
+**Founder:** (1) ревью PR интеграции; (2) опц. вооружить машину (`.claude/autonomy/README.md` §Вооружение — 2–4 `cp`/merge + branch protection); (3) пилот `/autonomy:run P2` после вооружения + Docker + funded `.env`. Параллельно: гейт P1 (`gates/P1-foundation.md`) ещё ждёт подписи.
 
 ## Read-first для следующего агента
-1. `_meta/BUILD-CHARTER.md` (charter)
-2. `STATUS.md` + этот HANDOFF
-3. `gates/P1-foundation.md` (что ждёт founder)
-4. `roadmap/P02-crawler-audit.md` (если стартуем P2) · `MEMORY-INDEX.md` (recall)
+1. `.planning/decisions/ADR-0021-...` + `ADR-0020-...` (что интегрировано)
+2. `.claude/autonomy/README.md` (карта слоя + вооружение)
+3. `STATUS.md` + этот HANDOFF · `MEMORY-INDEX.md` (recall)
 
 ## Escalate
-Нет блокеров. CI-зависимые пороги гейта (ci_pipelines_green/isolation/pgvector/celery) — `passed: null` до подтверждения прогона; не дефект, а ожидание CI.
+Нет блокеров. Открытый follow-up (BUILD-PLAN §Разрывы): classify_tripwire использует PyYAML (в env есть, 6.0.1) — подтвердить в backend-venv до вооружения premerge-хука; evidence.yml сделать required-check при настройке branch protection.

@@ -1,0 +1,50 @@
+name: evidence
+
+# ADR-0021 D3 — gate-integrity enforcement (порт ORIION ADR-037).
+#
+# Local-only гейты (funded live-gold crawl/probe, Docker-интеграция, адверсариальный
+# аудит), которые GitHub CI прогнать не может, обязаны коммитить evidence-артефакт per
+# гейт под evidence/<gate>.json и заявить требуемые гейты в evidence/manifest.json.
+# Этот job ассертит для каждого заявленного гейта: артефакт существует, СВЕЖИЙ
+# (записанный head_sha == PR head-коммит) и verdict == PASS. Любой промах блокирует мёрж.
+# Усиливает live-gold ADR-0018 до неподделываемого на мёрже.
+#
+# Non-breaking: PR без evidence/manifest.json (нет local-only гейтов) проходит тривиально.
+# Гейтятся только фазы, которые ОПТ-инятся, закоммитив манифест.
+#
+# Верификатор — stdlib-only → bare `python`, без uv/venv, быстро. Timeout ≤ 8 мин (как backend/security).
+
+# PR-only by design: это MERGE-гейт. Squash-merge переписывает историю, поэтому на
+# push-to-main записанный head_sha структурно протухает — audit-trail живёт в PR.
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify-evidence:
+    name: local-gate evidence — freshness + verdict
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      # Для PR чекаутим PR HEAD (не merge-коммит), чтобы evidence/*.json на диске был
+      # ровно тем, что закоммитил гейт, а записанный head_sha сверялся с этим же коммитом.
+      # fetch-depth > 1: верификатор идёт по first-parent за evidence-only хвост-коммиты
+      # (артефакт не может содержать sha собственного коммита), нужна история за tip'ом.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 25
+
+      - name: Resolve commit-under-test
+        id: sha
+        run: echo "head_sha=${{ github.event.pull_request.head.sha || github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify autonomy gate evidence
+        run: python scripts/autonomy/verify_evidence.py --head-sha "${{ steps.sha.outputs.head_sha }}"

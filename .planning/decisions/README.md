@@ -1,4 +1,4 @@
-<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 19 принятых решений: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия) + ADR-0018 (тесты+live-gold перед PR) + ADR-0019 (PR открыт сразу, не draft). ADR-0001–0018 — 2026-06-23, ADR-0019 — 2026-06-24. -->
+<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 21 принятое решение: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия) + ADR-0018 (тесты+live-gold перед PR) + ADR-0019 (PR открыт сразу, не draft) + ADR-0020 (исполняемый слой: команды/хуки/role-loader) + ADR-0021 (автономный runner — порт ORIION ADR-037). ADR-0001–0018 — 2026-06-23, ADR-0019 — 2026-06-24, ADR-0020/0021 — 2026-07-03. -->
 
 # ADR Index — WIZOR
 
@@ -25,6 +25,8 @@
 | ADR-0017 | phase-gate-only-autonomy | Человек-ревью только на гейтах фаз; внутри фазы полная автономия (мердж/аудит/доп-сессии сами); amends ADR-0009 | accepted | 2026-06-23 |
 | ADR-0018 | mandatory-tests-and-live-gold-before-pr | Обязательные self-run тесты + live-gold (где возможно) перед PR; evidence в гейт; amends ADR-0017 | accepted | 2026-06-23 |
 | ADR-0019 | open-pr-not-draft | PR создаётся сразу открытым (ready-for-review), не draft; чеки/ревью немедленно; founder видит итог; дополняет ADR-0017, amends ADR-0009 | accepted | 2026-06-24 |
+| ADR-0020 | executable-harness-layer | Исполняемый слой: slash-команды + SessionStart-хук + permission-allowlist + role-loader (спавн из `<role>/`-доков без дублей); amends ADR-0001/0002 | accepted | 2026-07-03 |
+| ADR-0021 | autonomous-multiphase-runner | Автономный runner: строгий гейт-стек = merge-authority (порт ORIION ADR-037; tripwire/evidence/escalation/judge/heal); amends ADR-0017/0018/0009 | accepted | 2026-07-03 |
 
 ## Связи с Charter §2 (decision log)
 
@@ -49,6 +51,8 @@
 | 18 | Автономия / human-in-the-loop (гейт-only) | ADR-0017 |
 | 19 | Тесты + live-gold перед PR | ADR-0018 |
 | 20 | Состояние PR (open, не draft) | ADR-0019 |
+| 21 | Исполняемый слой (команды/хуки/role-loader) | ADR-0020 |
+| 22 | Автономный многофазный runner (порт ADR-037) | ADR-0021 |
 | Product-1 | Multi-tenancy | ADR-0013 |
 | Product-2 | Dual-geo probe | ADR-0014 |
 | Product-3 | Trust ladder + DPA | ADR-0015 |

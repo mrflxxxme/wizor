@@ -14,7 +14,7 @@ WIZOR — **AI Readiness Platform для РФ**: делает сайт дост�
 
 ---
 
-## 2. 19 проектных решений (decision log харнесса)
+## 2. Проектные решения (decision log харнесса)
 
 | # | Решение | Выбор | ADR |
 |---|---------|-------|-----|
@@ -38,6 +38,8 @@ WIZOR — **AI Readiness Platform для РФ**: делает сайт дост�
 | 18 | Автономия / human-in-the-loop | **Только гейты фаз**; внутри фазы агенты автономны (мердж/аудит/доп-сессии сами) | ADR-0017 |
 | 19 | Тесты + live-gold перед PR | **Обязательно self-run** тесты + live-gold (где возможно), evidence в гейт; автономность подтверждена результатами | ADR-0018 |
 | 20 | Состояние PR | **PR открыт сразу (ready-for-review), не draft** — чеки/ревью немедленно, founder видит итог | ADR-0019 |
+| 21 | Исполняемый слой | **Методология исполняема, не только описана**: slash-команды `.claude/commands/`, SessionStart-хук авто-контекста, permission-allowlist, role-loader (спавн ролей из `<role>/`-доков без дублей) | ADR-0020 |
+| 22 | Автономный runner | **Строгий гейт-стек = merge-authority** (порт ORIION ADR-037): tripwire + коммит-привязанный evidence + escalation-policy + judge-панель + self-healing + RUN-QUEUE; машина ставится ВЫКЛ, вооружается founder'ом | ADR-0021 |
 
 ---
 
@@ -306,6 +308,8 @@ risks_delta: { opened: [], closed: [] }
 
 **Граница автономии.** Необратимые ВНЕШНИЕ действия (правки на реальном клиентском prod, живые списания, подпись DPA, внешние коммуникации) НЕ покрыты dev-автономией — это product-runtime, управляется trust-ladder + DPA (ADR-0015) и opt-in пользователя.
 
+**Исполняемый автономный runner (ADR-0020 + ADR-0021).** Автономия выше — не только декларация: она ИСПОЛНЯЕМА. `.claude/commands/autonomy/` (`/autonomy:run` · `:discuss` · `:ack` · `:heal`) гоняют 9-шаговый цикл сцеплено; строгий гейт-стек — merge-authority (порт ORIION ADR-037). Предохранители в `.claude/autonomy/`: **tripwire** (8 категорий → 1-клик `/ack`), **коммит-привязанный evidence** (усиливает live-gold ADR-0018 до неподделываемого), **escalation-policy** (эскалация только продукт/рынок + tripwire), **judge-панель** (широкие форки, судья=`auditor`), **self-healing** (auto-revert+fix-loop), **RUN-QUEUE**+notify. Спавн ролей — `scripts/autonomy/load_role.py` из `<role>/`-доков (без flat-дублей). Машина ставится **ВЫКЛЮЧЕННОЙ**; вооружается founder'ом (settings/hook-snippets + branch protection — Claude не self-install'ит execution-authority). Детали: `.claude/autonomy/README.md`.
+
 ---
 
 ## 12. Тестирование и live-gold (ADR-0018)
@@ -320,4 +324,4 @@ risks_delta: { opened: [], closed: [] }
 
 ---
 
-*Charter v1.3 · 2026-06-24 · источник истины для всех build-агентов WIZOR. Изменения — только через ADR. v1.1: +ADR-0017 (автономия; human-чекпоинт только на гейтах). v1.2: +ADR-0018 (тесты+live-gold перед PR; подтверждённая результатами автономность). v1.3: +ADR-0019 (PR открыт сразу, не draft).*
+*Charter v1.4 · 2026-07-03 · источник истины для всех build-агентов WIZOR. Изменения — только через ADR. v1.1: +ADR-0017 (автономия; human-чекпоинт только на гейтах). v1.2: +ADR-0018 (тесты+live-gold перед PR; подтверждённая результатами автономность). v1.3: +ADR-0019 (PR открыт сразу, не draft). v1.4: +ADR-0020 (исполняемый слой: команды/хуки/role-loader) +ADR-0021 (автономный многофазный runner — порт ORIION ADR-037; tripwire/evidence/escalation/judge/heal).*

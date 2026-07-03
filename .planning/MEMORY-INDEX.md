@@ -11,6 +11,11 @@
 | tiering | модели по роли | `decisions/ADR-0003` · charter §3.3 | Tier-0/Haiku/Sonnet/Opus + эскалация | 2026-06-23 |
 | loop | цикл фазы | charter §4 · `agent-handbook/07-AI-TEAM-PIPELINE.md` | 9 шагов, обяз. пост-аудит+память | 2026-06-23 |
 | autonomy | автономия / gate-only | `decisions/ADR-0017` · charter §11 · CLAUDE.md · `agent-handbook/02-DELEGATION.md` | человек только на гейтах; per-PR авто-мердж; доп-сессии (Agent tool / claude -p) + контекст-менеджмент | 2026-06-23 |
+| executable-layer | исполняемый слой харнесса | `decisions/ADR-0020` · `.claude/commands/` · `.claude/autonomy/settings.recommended.json` | slash-команды + SessionStart-хук авто-контекста + permission-allowlist + role-loader (спавн из `<role>/`-доков без дублей) | 2026-07-03 |
+| autonomy-runner | автономный многофазный runner | `decisions/ADR-0021` · `.claude/autonomy/README.md` · `.claude/commands/autonomy/` | порт ORIION ADR-037: gate-authority merge, 8 решений D1–D8; машина ВЫКЛ, вооружается founder'ом | 2026-07-03 |
+| tripwire | задняя растяжка автономии | `.claude/autonomy/tripwire.yaml` · `scripts/autonomy/classify_tripwire.py` | 8 категорий (5 ORIION + WIZOR: autofix/probe-geo/ПДн) → НЕ auto-merge → 1-клик `/ack` | 2026-07-03 |
+| evidence-protocol | коммит-привязанный evidence | `.claude/autonomy/evidence-schema.json` · `scripts/autonomy/verify_evidence.py` · `.github/workflows/evidence.yml` | усиливает live-gold ADR-0018 до неподделываемого (head_sha == PR head, freshness=зубы) | 2026-07-03 |
+| escalation | передняя растяжка + judge | `.claude/autonomy/escalation-policy.md` · `judge-panel.md` · `_session-context/DECISIONS-LOG.md` | агент владеет impl+arch (decide+log); эскалирует только продукт/рынок + tripwire; широкие форки → judge-панель (auditor) | 2026-07-03 |
 | testing | тесты + live-gold перед PR | `decisions/ADR-0018` · charter §12 · `.claude/agents/verifier/` | self-run unit+integration + live-gold (где возможно); evidence в гейт; deferred_live_gold если невозможно | 2026-06-23 |
 | pr-state | PR открыт, не draft | `decisions/ADR-0019` · charter §4 шаг 9 · CLAUDE.md Git/PR | PR создаётся сразу open (ready-for-review); чеки/ревью немедленно; фейлы чинятся в цикле; founder видит итог | 2026-06-24 |
 | audit | пост-аудит | `decisions/ADR-0005` · charter §6 · `.claude/agents/auditor/` | риск-тир 1/3/5 линз + 10 инвариантов | 2026-06-23 |
