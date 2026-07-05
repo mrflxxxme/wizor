@@ -18,7 +18,8 @@ class FactorVerdict(BaseModel):
     """Вердикт по одному аудит-фактору (AC-2)."""
 
     factor: str
-    """Идентификатор фактора: robots_txt|sitemap|http_status|html_semantics|json_ld|faq|cwv|indexability."""
+    """Идентификатор фактора: robots_txt|sitemap|http_status|html_semantics|
+    json_ld|faq|cwv|indexability."""
     verdict: Verdict
     detail: str
     """Человекочитаемое пояснение (RU) — почему pass/warn/fail/deferred."""

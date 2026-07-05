@@ -18,6 +18,14 @@ dependencies = [
     "prometheus-client>=0.21",
     "posthog>=3.7",
     "httpx>=0.28",
+    # --- P2 crawler / audit (read-only) ---
+    # Playwright запинен под предустановленный Chromium (chromium-1194); апгрейд
+    # версии требует согласованного апгрейда браузера (env PLAYWRIGHT_BROWSERS_PATH).
+    "playwright==1.56.*",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.3",
+    "rdflib>=7.1",
+    "tenacity>=9.0",
 ]
 
 [project.optional-dependencies]

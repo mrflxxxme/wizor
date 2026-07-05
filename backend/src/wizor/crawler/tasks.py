@@ -76,9 +76,7 @@ async def _run(tenant_id: uuid.UUID, site_id: uuid.UUID) -> dict[str, object]:
 
     sessionmaker = get_sessionmaker()
     async with sessionmaker() as session:
-        row = await save_crawl_result(
-            session, tenant_id=tenant_id, site_id=site_id, result=result
-        )
+        row = await save_crawl_result(session, tenant_id=tenant_id, site_id=site_id, result=result)
         await session.commit()
         crawl_result_id = row.id
 
