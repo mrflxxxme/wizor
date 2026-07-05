@@ -19,12 +19,23 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-from wizor.scoring.models import EMBEDDING_DIM, Vector
-
 revision: str = "0003_score_results"
 down_revision: str | None = "0002_crawl_results"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+
+
+class _VectorDDL(sa.types.UserDefinedType[object]):
+    """Замороженный тип pgvector-колонки ДЛЯ ЭТОЙ миграции — self-contained, не зависит
+    от app-кода (`wizor.scoring.models`). Миграция = неизменяемый снапшот истории:
+    если ``EMBEDDING_DIM`` в приложении однажды изменится, DDL этой миграции не должен
+    молча меняться. Размерность зафиксирована литералом (см. ревью P3).
+    """
+
+    cache_ok = True
+
+    def get_col_spec(self, **_kw: object) -> str:
+        return "vector(1536)"
 
 
 def upgrade() -> None:
@@ -39,7 +50,7 @@ def upgrade() -> None:
         sa.Column("projection_json", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("calculated_at", sa.DateTime(timezone=True), nullable=False),
         # Стаб semantic-search (NFR-6): всегда NULL в P3, pgvector-расширение из 0001.
-        sa.Column("embedding", Vector(EMBEDDING_DIM), nullable=True),
+        sa.Column("embedding", _VectorDDL(), nullable=True),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),

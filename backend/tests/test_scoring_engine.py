@@ -54,8 +54,14 @@ def test_components_expose_required_fields_ac3() -> None:
         assert 0.0 <= component.value <= 1.0
         assert component.verdict in {"pass", "warn", "fail", "deferred"}
         assert component.description  # RU-пояснение непусто
-        # contribution == weight * value (контракт schemas.ScoreComponent).
-        assert component.contribution == component.weight * component.value
+
+    # AC-3 прозрачность (независимая сверка, не тавтология): раскрытые компоненты
+    # реконструируют итоговый Score — нормированная сумма вкладов scored-факторов == score.
+    scored = [c for c in result.components if c.verdict != "deferred"]
+    scored_weight = sum(c.weight for c in scored)
+    if scored_weight:
+        expected = round(100.0 * sum(c.contribution for c in scored) / scored_weight, 4)
+        assert result.score == expected
 
 
 def test_empty_audit_scores_zero_ac5() -> None:
