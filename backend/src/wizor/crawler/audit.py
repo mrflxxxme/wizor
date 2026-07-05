@@ -60,13 +60,16 @@ async def audit_site(
     guard = ReadOnlyGuard()
     crawled_at = datetime.now(UTC)
     client = build_guarded_client(guard, inner=transport, timeout_s=per_page_timeout_s)
+    # Штатный Playwright-рендер связываем с ЭТИМ guard'ом, чтобы browser-трафик (route-abort
+    # не-GET) фиксировался в том же журнале и попадал в read_only_confirmed (F1/AC-7).
+    active_render = _bind_render_guard(render, guard)
     try:
         pages, page_signals = await _crawl_pages(
             site_url,
             client=client,
             max_pages=max_pages,
             per_page_timeout_s=per_page_timeout_s,
-            render=render,
+            render=active_render,
         )
         if not pages:
             return CrawlResult(
@@ -102,6 +105,20 @@ async def audit_site(
         read_only_confirmed=guard.confirmed_read_only,
         error=None,
     )
+
+
+def _bind_render_guard(render: RenderFn | None, guard: ReadOnlyGuard) -> RenderFn | None:
+    """Связать штатный Playwright-рендер с guard'ом (browser route-abort пишет в тот же журнал).
+
+    Кастомный/подменённый render (тесты) остаётся как есть — не оборачиваем.
+    """
+    if render is not render_with_playwright:
+        return render
+
+    async def _guarded_render(url: str, timeout_ms: int) -> str | None:
+        return await render_with_playwright(url, timeout_ms, guard=guard)
+
+    return _guarded_render
 
 
 async def _crawl_pages(

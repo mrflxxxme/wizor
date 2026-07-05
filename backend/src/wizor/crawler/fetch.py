@@ -1,10 +1,14 @@
 """GET-only загрузка страниц + Playwright JS-рендер для SPA (AC-3).
 
 Слой доступа к сети краула. Статический HTML берётся guarded httpx-клиентом (только
-GET, §6.1). Для SPA дополнительно выполняется JS-рендер headless-Chromium
-(Playwright) — навигация браузера тоже только GET (`page.goto` = HTTP GET, форм не
-отправляем). Итог по странице: HTTP-статус, финальный HTML, `content_hash` и флаг
-`rendered_via_js` (изменил ли JS-рендер контент относительно сырого HTML — признак SPA).
+GET, §6.1). Для SPA дополнительно выполняется JS-рендер headless-Chromium (Playwright).
+
+Read-only в браузере enforce'ится структурно: ДО `page.goto` регистрируется route-хендлер
+`page.route("**/*", …)`, который на КАЖДЫЙ browser-запрос (навигация, XHR/fetch/beacon,
+сабресурсы) пишет метод в общий `ReadOnlyGuard` и рвёт любой не-GET через `route.abort()`
+на уровне Chromium. Поэтому JS страницы не может выпустить POST/PUT/… мимо guard'а, а
+`read_only_confirmed` покрывает и browser-трафик. Итог по странице: HTTP-статус, финальный
+HTML, `content_hash` и флаг `rendered_via_js` (изменил ли JS-рендер контент — признак SPA).
 
 Playwright запускается под предустановленным Chromium (env
 `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`); `playwright install` не запускается.
@@ -16,9 +20,13 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from bs4 import BeautifulSoup
+
+if TYPE_CHECKING:
+    from wizor.crawler.guard import ReadOnlyGuard
 
 # Тип функции JS-рендера: url + таймаут(мс) → отрендеренный HTML или None (провал).
 RenderFn = Callable[[str, int], Awaitable[str | None]]
@@ -65,11 +73,36 @@ def _looks_like_spa(raw_html: str) -> bool:
     return any(hint in raw_html for hint in _SPA_HINTS)
 
 
-async def render_with_playwright(url: str, timeout_ms: int) -> str | None:
-    """Отрендерить страницу headless-Chromium и вернуть HTML после JS.
+def make_route_guard(guard: ReadOnlyGuard | None) -> Callable[[Any], Awaitable[None]]:
+    """Собрать Playwright route-хендлер: пишет метод в guard и рвёт любой не-GET.
 
-    Навигация — HTTP GET (`page.goto`). При любой ошибке возвращает None (fallback на
-    статический HTML, self-audit пометит `spa_render: failed`).
+    Каждый browser-запрос (навигация/XHR/fetch/beacon/сабресурс) фиксируется в `guard`
+    (если задан) через `guard.record`, затем GET продолжается (`route.continue_`), а любой
+    не-GET физически прерывается на уровне Chromium (`route.abort`) — write наружу не уходит.
+    """
+
+    async def _handler(route: Any) -> None:
+        request = route.request
+        method: str = request.method
+        if guard is not None:
+            guard.record(method, request.url)
+        if method.upper() == "GET":
+            await route.continue_()
+        else:
+            await route.abort()
+
+    return _handler
+
+
+async def render_with_playwright(
+    url: str, timeout_ms: int, *, guard: ReadOnlyGuard | None = None
+) -> str | None:
+    """Отрендерить страницу headless-Chromium и вернуть HTML после JS (browser GET-only).
+
+    ДО навигации ставится route-хендлер (см. `make_route_guard`): GET проходит, любой не-GET
+    из JS страницы рвётся на уровне Chromium и фиксируется в `guard`. Навигация — HTTP GET
+    (`page.goto`). При любой ошибке возвращает None (fallback на статический HTML, self-audit
+    пометит `spa_render: failed`).
     """
     # Импорт локальный: Playwright не нужен, если рендер отключён/подменён в тестах.
     from playwright.async_api import async_playwright
@@ -79,6 +112,8 @@ async def render_with_playwright(url: str, timeout_ms: int) -> str | None:
             browser = await pw.chromium.launch(headless=True)
             try:
                 page = await browser.new_page()
+                # Route-хендлер регистрируется ДО goto — иначе первые запросы уйдут мимо guard.
+                await page.route("**/*", make_route_guard(guard))
                 await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
                 return await page.content()
             finally:
