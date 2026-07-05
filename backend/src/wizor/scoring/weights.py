@@ -72,7 +72,7 @@ _WEIGHT_SUM_TOLERANCE: Final = 1e-9
 
 _VERDICT_VALUE: Final[MappingProxyType[str, float]] = MappingProxyType(
     {
-        "pass": 1.0,
+        "pass": 1.0,  # nosec B105 — вердикт аудита «pass», не пароль (B105 ложное срабатывание)
         "warn": 0.5,
         "fail": 0.0,
         # `deferred` формально маппится в 0.0, НО это значение НИКОГДА не попадает в
