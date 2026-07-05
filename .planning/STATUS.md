@@ -1,9 +1,9 @@
-<!-- HEAD-SUMMARY (≤500т): Rolling-состояние WIZOR. Сейчас (2026-07-03): интегрирована автономная методология ORIION (ADR-037) → ADR-0020 (исполняемый слой: команды/хуки/role-loader) + ADR-0021 (автономный runner: tripwire/evidence/escalation/judge/heal). Слой установлен ВЫКЛ, ждёт вооружения founder'ом (.claude/autonomy/README §Вооружение). До этого: P1 Foundation реализован+вмёржен (monorepo FastAPI+PG/pgvector+Redis+Celery+Keycloak/PostHog, multi-tenant, 3 CI). История фаз — в PHASE-HISTORY.md. Обновляет этот файл только memory-curator на шаге 8 цикла. -->
+<!-- HEAD-SUMMARY (≤500т): Rolling-состояние WIZOR. Сейчас (2026-07-05): **P2 Crawler/Аудит реализован новой методологией** (первая продуктовая фаза, прогнанная автономным циклом ADR-0021): read-only краулер (httpx+Playwright+lxml) + schema-валидатор + crawl_results + Celery + endpoint; verify зелёный (70 тестов, cov 88%), review→fix (закрыты read-only-bypass + SSRF), audit tier-3 PASS-WITH-FIXES (10/10 инвариантов). Ждёт founder-ревью PR + deferred_live_gold (test-WP URL). До этого (2026-07-03): интегрирована методология ORIION → ADR-0020 (исполняемый слой) + ADR-0021 (runner), вмёржена (PR #2/#3), машина ВЫКЛ. P1 Foundation вмёржен. История фаз — PHASE-HISTORY.md. Пишет только memory-curator (шаг 8). -->
 
 # STATUS — WIZOR
 
-**Обновлено:** 2026-07-03 · сессия `oriion-methodology-integration` · @claude-opus
-**Стадия:** Интегрирована автономная методология ORIION (ADR-037) → **ADR-0020** (исполняемый слой) + **ADR-0021** (автономный runner). `.claude/autonomy/` + `scripts/autonomy/` (8 скриптов, py_compile+smoke зелёные) + `/autonomy:*` команды установлены **ВЫКЛ** (founder-armed). До этого: P1 Foundation реализован+вмёржен (PR #1), ждёт `founder_signature` на гейте P1.
+**Обновлено:** 2026-07-05 · сессия `oriion-methodology-integration` · @claude-opus
+**Стадия:** **P2 Crawler/Аудит реализован** — первая продуктовая фаза, прогнанная новой автономной методологией (ADR-0021) end-to-end: plan→domain→implement→verify→review→audit→memory. Read-only краулер + schema-валидатор + crawl_results + Celery `crawl_site` + endpoint. Verify зелёный (ruff/mypy/70 тестов/cov 88%); review cycle-1 закрыл F1 (Playwright read-only-bypass) + F2/F3 (SSRF) + F5; auditor tier-3 **PASS-WITH-FIXES** (10/10 §6). Ждёт founder-ревью P2 PR. Ранее: методология ORIION вмёржена (ADR-0020/0021, PR #2/#3, машина ВЫКЛ); P1 вмёржен.
 
 ## Прогресс роадмапа
 
@@ -12,7 +12,7 @@
 | **Scaffold** (харнесс + ТЗ) | ✅ **Завершён** (2026-06-23) | — |
 | P0 — Discovery & De-risking | ⏳ Готов к старту (нужен founder) | `gates/P0-to-heavy-autofix.md` |
 | P1 — Foundation | 🟢 **Реализован, ждёт гейт** (2026-06-24) | `gates/P1-foundation.md` (pending) |
-| P2 — Crawler/Аудит | ⏳ Pending | — |
+| P2 — Crawler/Аудит | 🟢 **Реализован, ждёт PR-ревью** (2026-07-05) | P2 PR (deferred_live_gold) |
 | P3 — AI-Readiness Score | ⏳ Pending | — |
 | P4 — LLM-router | ⏳ Pending | — |
 | P5 — Probe-мониторинг | ⏳ Pending | — |
@@ -26,13 +26,14 @@
 
 ## Текущая активная фаза
 
-**P1 (Foundation)** — код реализован на ветке `claude/quirky-allen-meae1a`, draft PR открыт. Прошёл review (APPROVE-WITH-COMMENTS) + audit (PASS-WITH-FIXES, 10/10 инвариантов) + verify (локально зелёный; live-gold стека — в CI). Фаза закрывается founder-подписью гейта после подтверждения зелёного CI.
+**P2 (Crawler/Аудит)** — реализован на ветке `claude/oriion-methodology-integration-o2dp8a` (5 коммитов: seam→persistence→domain→audit→fixes). Прогнан полный 9-шаговый цикл: planner-план (0 эскалаций) → domain-build (crawler-probe-specialist + backend-implementer, параллельно) → verify (70 тестов, cov 88%) → review (CHANGES→fixed) → audit tier-3 (PASS-WITH-FIXES, 10/10 §6). Ключевое: read-only-инвариант §6.1 сделан **структурным** и на browser-пути (Playwright route-abort), закрыт SSRF (private-IP + @context). Ждёт founder-ревью PR (машина ВЫКЛ — авто-мёржа нет). **deferred_live_gold:** живой crawl golden нужен test-WP URL; реальные CWV/индексируемость — founder-ключи (стабы → `deferred`).
 
 ## Блокеры / действия founder
 
 | # | Действие | Где |
 |---|---|---|
-| 0 | **Ревью + (опц.) вооружение автономной машины** — `cp settings.recommended.json → .claude/settings.json` + `session-start.hook.sh → .claude/hooks/`; опц. premerge-хук + branch protection + `notify.json` | `.claude/autonomy/README.md` §Вооружение |
+| 0 | **Ревью P2 PR** (Crawler/Аудит) — reviewer+auditor зелёные, verify 88%; принять/оспорить `deferred_live_gold` (нужен test-WP URL для живого crawl + ключи PageSpeed/Bing/Яндекс для CWV/индексируемости) | P2 PR |
+| 0б | **Ревью + (опц.) вооружение автономной машины** — `cp settings.recommended.json → .claude/settings.json` + `session-start.hook.sh → .claude/hooks/`; опц. premerge-хук + branch protection + `notify.json` | `.claude/autonomy/README.md` §Вооружение |
 | 1 | **Подписать гейт P1** — CI финального коммита 76641f6 зелёный (подтверждён), 8 порогов PASS | `gates/P1-foundation.md` (`founder_signature`) |
 | 2 | Принять/оспорить deferred: DLG-1 PostHog self-host (→P7), DLG-2 `make dev-bootstrap` локально (нужен Docker) | гейт P1, секция deferred_live_gold |
 | 3 | Запустить P0 (Discovery) — 30 CustDev-интервью + тех-спайки (требует founder) | `roadmap/P00-discovery.md` |
@@ -48,7 +49,7 @@
 
 ## Тех-снапшот
 
-Стек залочен (ADR-0011, PRD §12). Кода продукта нет. Харнесс: файл-нативный, 8 ядро-агентов + 6 профильных, тиринг по роли.
+Стек залочен (ADR-0011, PRD §12). Продуктовый код: P1 (foundation) + P2 (crawler/аудит, контекст `crawler`, миграция 0002). Харнесс: файл-нативный, 8 ядро + 6 профильных, тиринг по роли, **исполняемая автономия** (ADR-0021, ВЫКЛ).
 
 ## Протокол обновления
 

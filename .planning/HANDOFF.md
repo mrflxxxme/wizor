@@ -1,24 +1,28 @@
 # HANDOFF — снапшот сессии
 
-**Обновлено:** 2026-07-03 · `oriion-methodology-integration` · @claude-opus
+**Обновлено:** 2026-07-05 · `oriion-methodology-integration` · @claude-opus
 
 ## Состояние
-Интегрирована **автономная методология ORIION** (ADR-037) в WIZOR — по итогам founder-интервью 2026-07-03 (полноценно, lean, ORIION-репо добавлен как источник). Два ADR: **ADR-0020** (исполняемый слой: slash-команды, SessionStart-хук, permission-allowlist, role-loader) + **ADR-0021** (автономный многофазный runner — порт ADR-037: tripwire · коммит-привязанный evidence · escalation-policy · judge-панель · self-healing · RUN-QUEUE). Машина установлена **ВЫКЛЮЧЕННОЙ** (founder-armed). Ветка `claude/oriion-methodology-integration-o2dp8a`.
+**P2 (Crawler/Аудит) реализован новой автономной методологией** — первая продуктовая фаза, прогнанная циклом ADR-0021 end-to-end. Ветка `claude/oriion-methodology-integration-o2dp8a` (5 P2-коммитов поверх main). Ждёт founder-ревью P2 PR (машина ВЫКЛ — авто-мёржа нет). Ранее в этой сессии: методология ORIION интегрирована и вмёржена (ADR-0020/0021, PR #2/#3).
 
-## Что сделано
-- **`.claude/autonomy/`** — tripwire.yaml (8 категорий: 5 ORIION + WIZOR autofix/probe-geo/ПДн) · evidence-schema.json · escalation-policy.md · judge-panel.md (судья=`auditor`) · README (§Вооружение) · BUILD-PLAN · settings.recommended.json + session-start.hook.sh + settings.hook-snippet.json + notify.json (все founder-armed).
-- **`scripts/autonomy/`** — 8 скриптов портированы из ORIION (verify_evidence · classify_tripwire · premerge_hook · run_queue · log_decision · load_role · check_main_health · provision_env). py_compile + smoke зелёные: load_role видит 14 ролей WIZOR, verify_evidence exit 0, classify чистый JSON, log_decision создал DECISIONS-LOG (записан сам факт интеграции).
-- **`.claude/commands/autonomy/`** — run · discuss · ack · heal (адаптированы под 9-шаговый цикл, 14-ростер, CI-чеки backend/frontend/security/evidence).
-- **CI** — `.github/workflows/evidence.yml` (D3 gate-integrity). **Governance** — charter §2/§11 +v1.4, CLAUDE.md, MEMORY-INDEX (+5 тегов), STATUS.
-- Адаптации lean (Q3): role-loader вместо flat-суб-агентов; `auditor` вместо `evaluator`; PNN-фазы; §6-инварианты → tripwire-категории.
+## Что сделано (P2)
+- **Планирование методологией:** `/autonomy:discuss P2` → PLAN.md (8 форков, **0 эскалаций**), 2 арх-решения в DECISIONS-LOG.
+- **Domain-build (параллельно, 2 специалиста, общий DTO-шов `crawler/schemas.py`):**
+  - crawler-домен (`crawler/{guard,fetch,extractors,schema_validator,adapters,audit}.py`): read-only краулер (httpx+Playwright+lxml — impl-форк над Crawlee, structural guard; ADR-0011 сохранён), schema-валидатор rdflib (offline), CWV/индексируемость = стабы `deferred`.
+  - persistence/API (`crawler/{models,repository,tasks,router}.py` + миграция `0002_crawl_results` + main.py): TenantMixin §6.8, Celery `crawl_site`, `POST /api/v1/sites/{id}/crawl`.
+- **Гейты:** verify зелёный (ruff/mypy --strict/70 тестов/cov 88%); review **CHANGES-REQUESTED**→fixed (F1 Playwright обходил read-only guard; F2/F3 SSRF через @context + private-IP; F5 tenant-unit-тест); auditor tier-3 **PASS-WITH-FIXES** (10/10 §6; #1 read-only теперь структурен и на browser-пути, #8 tenant PASS). Отчёт: `_session-context/AUDIT-2026-07-05-P2/`.
 
 ## Следующее действие
-**Founder:** (1) ревью PR интеграции; (2) опц. вооружить машину (`.claude/autonomy/README.md` §Вооружение — 2–4 `cp`/merge + branch protection); (3) пилот `/autonomy:run P2` после вооружения + Docker + funded `.env`. Параллельно: гейт P1 (`gates/P1-foundation.md`) ещё ждёт подписи.
+**Founder:** ревью P2 PR → принять `deferred_live_gold` (test-WP URL для живого crawl golden; ключи PageSpeed/Bing/Яндекс для реальных CWV/индексируемости) → мёрж. Затем P3 (Score, зависит от P2) или P0.
+
+## deferred_live_gold (founder action)
+- Живой crawl golden (AC-1) → нужен founder-owned тест-WP URL.
+- Реальные CWV/индексируемость → ключи (PageSpeed API / Bing / Яндекс.Вебмастер); до этого адаптеры возвращают `deferred` (не `fail`).
 
 ## Read-first для следующего агента
-1. `.planning/decisions/ADR-0021-...` + `ADR-0020-...` (что интегрировано)
-2. `.claude/autonomy/README.md` (карта слоя + вооружение)
-3. `STATUS.md` + этот HANDOFF · `MEMORY-INDEX.md` (recall)
+1. `roadmap/P03-readiness-score.md` (если стартуем P3) · `PLAN.md` (P2, если дорабатываем)
+2. `_meta/BUILD-CHARTER.md` + `STATUS.md` + этот HANDOFF
+3. `.claude/autonomy/README.md` (методология) · `MEMORY-INDEX.md` (recall)
 
 ## Escalate
-Нет блокеров. Открытый follow-up (BUILD-PLAN §Разрывы): classify_tripwire использует PyYAML (в env есть, 6.0.1) — подтвердить в backend-venv до вооружения premerge-хука; evidence.yml сделать required-check при настройке branch protection.
+Нет блокеров. Note: коммиты unsigned (пустой signing-key в env — как PR #2/#3, cosmetic). Live-gold P2 отложен явно (не тихо).

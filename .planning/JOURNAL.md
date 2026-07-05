@@ -53,3 +53,15 @@
 - **Governance:** charter §2 (+#21/#22), §11 (runner-абзац), footer v1.4; CLAUDE.md (секция Автономия); MEMORY-INDEX (+5 тегов); STATUS/HANDOFF.
 - **Next:** founder ревьюит PR → опц. вооружает машину → пилот `/autonomy:run P2`. Follow-up: evidence.yml → required-check; classify-runtime подтвердить в backend-venv.
 - **Refs:** ADR-0020, ADR-0021 (порт ORIION ADR-037); amends ADR-0017/0018/0009; charter v1.4.
+
+## 2026-07-05 · oriion-methodology-integration · @claude-opus (P2 Crawler/Аудит)
+
+- **Scope:** после мёржа методологии (PR #2/#3) founder-«продолжай» → первая продуктовая фаза **новой методологией**. `/autonomy:discuss P2` (заземлён в phase-spec + контрактах) → PLAN.md: 8 форков, **0 блокирующих эскалаций** (1 deferred product-note per-tariff caps→P9; 1 tripwire@merge миграция); 2 арх-решения в DECISIONS-LOG (read-only guard, storage shape).
+- **Domain-build (параллельно, 2 специалиста, фиксированный DTO-шов `crawler/schemas.py` — устранил integration-race):** crawler-probe-specialist → домен (`guard/fetch/extractors/schema_validator/adapters/audit`); backend-implementer → persistence/API (`models/repository/tasks/router` + миграция `0002_crawl_results` + main.py). Оба зелёные по отдельности.
+- **Impl-форк (owned, logged):** httpx+Playwright+lxml вместо Crawlee — чтобы read-only guard был **структурным** (socket-level), а не by-convention; тонкий Crawlee-wrapper = follow-up (ADR-0011 сохранён). playwright пиннут 1.56.0 к преустановленному chromium.
+- **Verify:** ruff/mypy --strict clean; 44→**70 non-integration тестов**, cov **88%**; integration + live-gold → CI/founder-WP (deferred_live_gold).
+- **Review→fix (cycle-1) — методология поймала реальное:** reviewer **CHANGES-REQUESTED** + auditor tier-3 **PASS-WITH-FIXES** независимо нашли: **F1** Playwright-браузер обходил httpx-guard (client-JS мог слать POST, `read_only_confirmed` был ложным на SPA-пути, §6.1/AC-7); **F2** JSON-LD `@context` list/dict → rdflib фетчил remote → **SSRF на metadata (169.254.169.254)** через attacker-controlled контент; **F3** редиректы на private-IP. Фиксы (суб-агент): Playwright `page.route` abort не-GET в тот же guard; полная `@context`-нейтрализация + offline rdflib-loader; private-IP/SSRF-блок на каждом hop; +tenant-unit-тест (F5). Re-verify зелёный (70 тестов, cov 88%).
+- **Audit:** 10/10 §6 инвариантов (#1 read-only теперь структурен и на browser-пути; #8 tenant PASS). Отчёт `_session-context/AUDIT-2026-07-05-P2/` (3 линзы).
+- **Урок:** review-гейт окупился — независимые reviewer+auditor поймали invariant-bypass + SSRF ДО мёржа; DTO-шов заранее убрал integration-race двух параллельных билд-агентов.
+- **Next:** founder ревьюит P2 PR → мёрж → P3 (Score, зависит от P2). deferred_live_gold: test-WP URL + ключи CWV/индексируемости.
+- **Refs:** P2; PLAN.md; `roadmap/P02-crawler-audit.md`; ADR-0021 (методология), ADR-0011 (стек-форк); коммиты 925ecd6/531502b/279eae7/d0f65f3/34f792f.

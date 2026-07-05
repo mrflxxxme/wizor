@@ -21,6 +21,7 @@ from wizor.analytics.posthog import build_analytics_client
 from wizor.core.config import Settings, get_settings
 from wizor.core.logging import configure_logging, get_logger
 from wizor.core.tenancy import TenancyMiddleware, get_tenant_id
+from wizor.crawler.router import router as crawler_router
 
 logger = get_logger(__name__)
 
@@ -68,6 +69,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Продуктовые роутеры (P2+): crawler enqueue-эндпоинт.
+    app.include_router(crawler_router)
 
     # /metrics — Prometheus exposition (NFR observability).
     app.mount("/metrics", make_asgi_app())
