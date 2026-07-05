@@ -282,8 +282,7 @@ def _verify_weight_model() -> None:
     for excluded in EXCLUDED_FROM_SCORE:
         if excluded in WEIGHTS_BY_FACTOR:
             msg = (
-                f"фактор {excluded!r} запрещён в Score (charter §6.5 / FR-1.3), "
-                "но найден в WEIGHTS"
+                f"фактор {excluded!r} запрещён в Score (charter §6.5 / FR-1.3), но найден в WEIGHTS"
             )
             raise RuntimeError(msg)
 
