@@ -153,8 +153,17 @@ class _HttpProvider:
     async def complete(
         self, prompt: str, *, task_type: TaskType = "content_gen", **kwargs: Any
     ) -> LLMResponse:
-        """Выполнить вызов с ретраем транзиентных сбоев (AC-5)."""
-        return await self._complete_with_retry(prompt, task_type=task_type, **kwargs)
+        """Выполнить вызов с ретраем транзиентных сбоев (AC-5).
+
+        Ретраи исчерпаны (транзиентный сбой не прошёл) ИЛИ не-транзиентный сбой (4xx) →
+        raw `httpx.HTTPError` конвертируется в доменную `ProviderCallError`. Иначе фасад
+        `LLMRouter.probe/complete` (ловит `except ProviderError`) НЕ изолировал бы сбой —
+        одно persistent-падение уронило бы весь probe-батч (AC-5).
+        """
+        try:
+            return await self._complete_with_retry(prompt, task_type=task_type, **kwargs)
+        except httpx.HTTPError as exc:
+            raise ProviderCallError(f"{self.provider}: {exc!r}") from exc
 
     @retry(
         stop=stop_after_attempt(_RETRY_ATTEMPTS),
