@@ -17,6 +17,10 @@ COPY pyproject.toml ./
 COPY src ./src
 RUN pip install --upgrade pip && pip install -e .
 
+# Chromium для Playwright JS-рендера SPA (P2 AC-3); версия браузера привязана
+# к запину playwright==1.56.* в pyproject. Без него render недоступен в контейнере.
+RUN playwright install --with-deps chromium
+
 COPY alembic.ini ./
 COPY migrations ./migrations
 

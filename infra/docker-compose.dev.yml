@@ -82,10 +82,16 @@ services:
       context: ../backend
     environment:
       WIZOR_DATA_REGION: ru-central1
+      # Задачи (краул/probe) пишут в Postgres — без DATABASE_URL воркер падает
+      # на дефолтном localhost:5432.
+      WIZOR_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-wizor}:${POSTGRES_PASSWORD:-wizor}@postgres:5432/${POSTGRES_DB:-wizor}
+      WIZOR_REDIS_URL: redis://redis:6379/0
       WIZOR_CELERY_BROKER_URL: redis://redis:6379/1
       WIZOR_CELERY_RESULT_BACKEND: redis://redis:6379/2
     command: ["celery", "-A", "wizor.worker.celery_app", "worker", "--loglevel=info", "-Q", "default"]
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:

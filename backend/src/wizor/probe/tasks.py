@@ -28,7 +28,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from wizor.db.session import get_sessionmaker
+from wizor.db.session import dispose_engine, get_sessionmaker
 from wizor.iam.models import Site
 from wizor.llm_router.uncertainty import MIN_RUNS
 from wizor.metrics.engine import aggregate_visibility
@@ -264,6 +264,15 @@ def run_probe_batch(site_id: str, tenant_id: str) -> dict[str, object]:
     """Enqueue-точка: probe-батч сайта ``site_id`` тенанта ``tenant_id`` (read-only, dual-geo).
 
     Аргументы — строки (JSON-сериализация брокера); парсятся в UUID. Синхронная Celery-обёртка
-    гоняет async-тело в собственном loop (``asyncio.run``).
+    гоняет async-тело в собственном loop (``asyncio.run``), поэтому в финале сбрасывает кеш
+    движка БД — иначе следующая задача этого же воркера получит движок из закрытого loop'а.
     """
-    return asyncio.run(_run(uuid.UUID(tenant_id), uuid.UUID(site_id)))
+    return asyncio.run(_run_and_dispose(uuid.UUID(tenant_id), uuid.UUID(site_id)))
+
+
+async def _run_and_dispose(tenant_id: uuid.UUID, site_id: uuid.UUID) -> dict[str, object]:
+    """Тело задачи + гарантированный сброс кеша движка (loop живёт одну задачу)."""
+    try:
+        return await _run(tenant_id, site_id)
+    finally:
+        await dispose_engine()

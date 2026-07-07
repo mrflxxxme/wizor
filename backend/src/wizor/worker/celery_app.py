@@ -1,7 +1,9 @@
 """Celery-приложение (брокер/бэкенд — Redis), конфиг из настроек.
 
-P1 — базовый каркас очередей: один воркер, очередь ``default``, smoke ``ping``.
-Реальные задачи (краул, probe, скоринг) появляются в P2+.
+``include`` — единственный источник регистрации задач для воркера: модуль,
+не попавший в список, воркер НЕ импортирует, и его задачи молча отбрасываются
+как unregistered (API при этом отвечает ``accepted``). Новый модуль задач
+обязан добавляться сюда; регрессия ловится тестом реестра в ``test_worker.py``.
 """
 
 from __future__ import annotations
@@ -16,7 +18,11 @@ celery_app = Celery(
     "wizor",
     broker=_settings.celery_broker_url,
     backend=_settings.celery_result_backend,
-    include=["wizor.worker.tasks"],
+    include=[
+        "wizor.worker.tasks",  # P1: smoke ping
+        "wizor.crawler.tasks",  # P2: wizor.crawl_site
+        "wizor.probe.tasks",  # P5: wizor.run_probe_batch
+    ],
 )
 
 celery_app.conf.update(

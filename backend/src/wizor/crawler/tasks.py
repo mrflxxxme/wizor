@@ -27,7 +27,7 @@ from tenacity import (
 
 from wizor.crawler.repository import save_crawl_result
 from wizor.crawler.schemas import CrawlResult
-from wizor.db.session import get_sessionmaker
+from wizor.db.session import dispose_engine, get_sessionmaker
 from wizor.iam.models import Site
 from wizor.worker.celery_app import celery_app
 
@@ -103,6 +103,16 @@ def crawl_site(site_id: str, tenant_id: str) -> dict[str, object]:
     """Enqueue-точка: краул сайта ``site_id`` тенанта ``tenant_id`` (read-only).
 
     Аргументы — строки (JSON-сериализация брокера); парсятся в UUID. Синхронная
-    Celery-обёртка гоняет async-тело в собственном loop (``asyncio.run``).
+    Celery-обёртка гоняет async-тело в собственном loop (``asyncio.run``),
+    поэтому в финале сбрасывает кеш движка БД — иначе следующая задача этого же
+    воркера получит движок из уже закрытого loop'а.
     """
-    return asyncio.run(_run(uuid.UUID(tenant_id), uuid.UUID(site_id)))
+    return asyncio.run(_run_and_dispose(uuid.UUID(tenant_id), uuid.UUID(site_id)))
+
+
+async def _run_and_dispose(tenant_id: uuid.UUID, site_id: uuid.UUID) -> dict[str, object]:
+    """Тело задачи + гарантированный сброс кеша движка (loop живёт одну задачу)."""
+    try:
+        return await _run(tenant_id, site_id)
+    finally:
+        await dispose_engine()
