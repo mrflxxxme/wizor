@@ -23,6 +23,7 @@ from wizor.core.logging import configure_logging, get_logger
 from wizor.core.tenancy import TenancyMiddleware, get_tenant_id
 from wizor.crawler.router import router as crawler_router
 from wizor.llm_router.router_api import router as llm_router
+from wizor.metrics.router_api import router as metrics_router
 from wizor.scoring.router import router as scoring_router
 
 logger = get_logger(__name__)
@@ -72,10 +73,12 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Продуктовые роутеры (P2+): crawler enqueue-эндпоинт, scoring Score-эндпоинт.
+    # Продуктовые роутеры (P2+): crawler enqueue-эндпоинт, scoring Score-эндпоинт,
+    # metrics Visibility + управление наборами промптов (P5).
     app.include_router(crawler_router)
     app.include_router(scoring_router)
     app.include_router(llm_router)
+    app.include_router(metrics_router)
 
     # /metrics — Prometheus exposition (NFR observability).
     app.mount("/metrics", make_asgi_app())
