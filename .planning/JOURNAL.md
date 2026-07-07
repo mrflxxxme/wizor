@@ -97,3 +97,13 @@
 - **Deferred→P6/P8/P9:** rich entity brand-terms (P6), competitor SoV (P6), probe_runs↔prompt_set_version (P8), site RLS (P9) — оба гейта + spec-aligned.
 - **Next:** founder ревьюит P5 PR → мёрж → P6 (Рекомендации, зависит P3+P5). deferred_live_gold: funded-ключи + зарубежная egress-нода.
 - **Refs:** P5; PLAN.md; `roadmap/P05-probe-monitoring.md`; ADR-0021/0014/0005; charter §6.4/§6.7/§6.2; `_session-context/AUDIT-2026-07-05-P5/`; коммиты 86f80fa/f054b8c.
+
+## 2026-07-07 · fix-celery-worker · @claude-fable (PR #8)
+
+- **Scope:** hotfix после локальной валидации сборки founder'ом. Найдены и исправлены 4 дефекта, из-за которых P2-краул и P5-probe не работали в Docker-окружении.
+- **Дефекты:** (1) include воркера не содержал wizor.crawler.tasks/wizor.probe.tasks — задачи молча отбрасывались как unregistered при API-ответе accepted; (2) у celery-сервиса в compose не было WIZOR_DATABASE_URL/REDIS_URL; (3) кеш движка БД переживал asyncio.run-loop задач — вторая задача падала с asyncpg «attached to a different loop» (фикс: db.session.dispose_engine() + _run_and_dispose в crawler/probe); (4) Dockerfile не содержал Chromium — Playwright-рендер SPA не работал.
+- **Верификация:** дыра в CI (celery inspect ping ≠ реальный диспатч закрыта) → добавлены unit-тест контракта include (test_worker.py) + integration-тест двойного диспатча (test_worker_dispatch.py) на живом воркере. Verify: unit 183/cov 88%, integration 14/14, ruff/mypy зелено, live E2E 2 краула через воркер.
+- **Урок:** зелёный CI ≠ работающий E2E; smoke-уровня ping не ловит unregistered-задачи. Для каждого нового модуля задач обязателен тест диспатча через воркер. Asyncio.run-per-task + module-level engine cache несовместимы без dispose.
+- **Refs:** PR #8 (merge 7a1ab1e); hotfix; ADR-0018 (verify + live-gold).
+- **Next:** dev-стек запущен локально в постоянном режиме (compose + локальный override, restart: unless-stopped); founder — ревью P5-гейта, funded-ключи для live-gold.
+
