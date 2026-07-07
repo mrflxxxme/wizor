@@ -16,13 +16,16 @@
 | **P3** | AI-Readiness Score | read-only | 3 | P2 | — | FR-1.3 → `scoring` |
 | **P4** | LLM-router | infra | 4 | P1 | — | NFR-3 → `llm-router` |
 | **P5** | Probe-мониторинг | read-only | 3 | P4 | — | FR-2.1–2.4 → `probe`, `metrics` |
-| **P6** | Рекомендации | read-only | 3 | P3, P5 | — | FR-3.1–3.5 → `recommendations`, `patches` |
-| **P7** | ⭐ Tier 0 Instant Audit | read-only | 3 | P2,P3,P4,P5,P6 | — | §4.1, §9.1 → публичный PLG |
-| **P8** | Верификация | read-only | 3 | P6 | — | FR-5.1–5.5 → `verification`, `notifications` |
-| **P9** | Auth + биллинг + дорожки | infra | 4 | P7, P8 | — | FR-6.1–6.3, §9.4 → `iam`, `billing` |
+| **P6** | Рекомендации (+PromptSetGen +кабинет) | read-only | 3 | P3, P5 | — | FR-3.1–3.5 → `recommendations`, `patches` |
+| **P6.5** | Production deploy (YC IaC+домен+TLS+CD+observability) | infra | 4 | P1 | — | NFR-1,7; §12 → prod-инфра (ADR-0027) |
+| **P7** | ⭐ Tier 0 Instant Audit (async) | read-only | 3 | P2,P3,P4,P5,P6,**P6.5** | — | §4.1, §9.1 → публичный PLG |
+| **P8** | Верификация (+тренды/алерты UI) | read-only | 3 | P6 | — | FR-5.1–5.5 → `verification`, `notifications` |
+| **P9** | Auth + биллинг + дорожки (+prompt-editor) | infra | 4 | P7, P8 | — | FR-6.1–6.3, §9.4 → `iam`, `billing` |
 | **P10** | ⭐ Auto track | auto | 4 | P9 | **P0** | FR-4.1–4.7 → `autofix`, `connectors` |
 
-**Параллельность:** P0 идёт одновременно с P1–P5. P2 и P4 независимы — могут идти параллельно после P1.
+**Параллельность:** P0 идёт одновременно с P1–P5. P2 и P4 независимы — могут идти параллельно после P1. **P6.5 (prod-деплой) идёт параллельно с P6** — разные специалисты (devops vs продуктовые), P7 зависит от обеих.
+
+**Frontend (ADR-0026):** каждая фаза P6–P10 отгружает UI-инкремент вместе с API; инвентарь экранов — [`UI-SPEC.md`](./UI-SPEC.md). **Классы AC (ADR-0022):** каждый AC помечен `mock-verifiable` / `live-only`; live-only — явные gate-blocker'ы до founder-ресурса. **DoD MVP (ADR-0028):** golden e2e в A→B gate + track-smoke'и после P7/P9/P10.
 
 ---
 
@@ -95,8 +98,10 @@
 | 4 | **Пол MRR + сигнал retention** (M3-retention ≥ целевого) | Business | P9 billing data |
 | 5 | **Входящий интерес ≥ 3–5 агентств** | GTM | CRM, inbound leads |
 
+| 6 | **Golden e2e (ADR-0028)** прошёл вживую — обе ветки Manual и Auto (Definition of Done MVP) | Evidence | e2e-лог + скриншоты + Readiness-delta с CI |
+
 **Pivot-дедлайн (мес. 9 Phase A):** если gate не достигнут → явное решение: pivot в чистый agency-tool / сужение ICP / stop.
 
 ---
 
-*ROADMAP.md v1.0 · 2026-06-23 · читается build-агентами для контекста фаз. Детали каждой фазы — в `.planning/roadmap/PNN-*.md`.*
+*ROADMAP.md v1.1 · 2026-07-07 · читается build-агентами для контекста фаз. Детали каждой фазы — в `.planning/roadmap/PNN-*.md`. v1.1 (grill-интервью): +P6.5 prod-деплой, frontend в P6–P10, mock/live классы AC, golden e2e в A→B gate.*

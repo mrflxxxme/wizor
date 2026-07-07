@@ -41,6 +41,13 @@ hard_thresholds:
     evidence_url: null
     measured_at: null
     description: "Входящий интерес ≥ 3–5 агентств: явно сформулированный запрос на white-label или agency-billing. Evidence: записи звонков / email-переписка / Telegram-переписка с агентствами."
+  H_golden_e2e:
+    target: "proven"
+    actual: null
+    passed: null
+    evidence_url: null
+    measured_at: null
+    description: "ADR-0028 (Definition of Done MVP): единый live golden-сценарий прошёл вживую — реальный URL → Tier0-аудит (P7) → регистрация (P9) → авто-промпты+правка (P6/P9) → probe (P5) → рекомендация+honest forecast (P6) → применённый фикс (Manual re-crawl FR-5.5 ИЛИ Auto WP-коннектор FR-4.1) → verified Readiness-delta вне полосы шума (P8). Обе ветки (Manual и Auto) прогнаны. Класс live-only (ADR-0022). Evidence: e2e-лог + скриншоты каждого шага + Readiness-delta с CI."
 
 deliverables:
   - id: D1
@@ -78,9 +85,14 @@ deliverables:
     status: pending
     owner: "founder"
     notes: "Если gate не достигнут к мес. 9 — обязательное pivot-решение"
+  - id: D8
+    name: "Golden e2e (ADR-0028) прошёл вживую — обе ветки Manual и Auto; track-smoke'и после P7/P9/P10 зелёные"
+    status: pending
+    owner: "founder + backend-implementer + crawler-probe-specialist"
+    notes: "Definition of Done всего MVP; live-only (test-WP + funded-ключи + прод P6.5). Сокращённые track-smoke'и гоняются раньше на границах P7/P9/P10."
 
 adr_delta:
-  created: []
+  created: [ADR-0028]
   revised: []
   superseded: []
 
@@ -95,11 +107,15 @@ risks_delta:
 
 ## Назначение
 
-Контрольная точка перехода с MVP/SMB self-serve (Phase A) на Agency white-label (Phase B). **Все 5 условий обязательны.** Переход без gate = нарушение evidence-gated scaling (доктрина §3).
+Контрольная точка перехода с MVP/SMB self-serve (Phase A) на Agency white-label (Phase B). **Все 6 hard thresholds обязательны** (5 бизнес/надёжность + golden e2e как Definition of Done MVP, ADR-0028). Переход без gate = нарушение evidence-gated scaling (доктрина §3).
 
 **Pivot-дедлайн (мес. 9 фазы A):** если gate не достигнут — основатель принимает явное решение: pivot (в чистый agency-tool / сужение ICP) или stop.
 
 ## Hard thresholds (must-pass)
+
+### H_golden_e2e — Сквозной live-акцепт (Definition of Done MVP)
+
+ADR-0028: единый golden-сценарий «реальный URL → Tier0 → регистрация → промпты → probe → рекомендация → применённый фикс (Manual ИЛИ Auto) → verified Readiness-delta» прошёл **вживую**, обе ветки. Отвечает на «собрался ли рабочий продукт» однозначно — пофазные гейты проверяют модули, но не связность между контекстами (где живут интеграционные баги). Сокращённые track-smoke'и гоняются раньше на границах P7 (Tier0 read-only), P9 (Manual платный), P10 (Auto).
 
 ### H_verified_uplift — Доказанный uplift
 
@@ -123,7 +139,9 @@ rollback-rate < 5%, ноль порч production. Предпосылка для 
 
 ## Checklist
 
-- [ ] Все 5 hard thresholds выполнены и задокументированы (evidence в `gates/evidence/A-to-B/`)
+- [ ] Все 6 hard thresholds выполнены и задокументированы (evidence в `gates/evidence/A-to-B/`)
+- [ ] **Golden e2e (ADR-0028) прошёл вживую — обе ветки Manual и Auto**
+- [ ] Track-smoke'и после P7/P9/P10 зелёные (ранняя проверка связности)
 - [ ] 2–3 кейс-стади опубликованы
 - [ ] PostHog-дашборд с North Star и воронкой работает
 - [ ] P10 прошёл внутреннее QA и reliability-тест

@@ -40,6 +40,13 @@ WIZOR — **AI Readiness Platform для РФ**: делает сайт дост�
 | 20 | Состояние PR | **PR открыт сразу (ready-for-review), не draft** — чеки/ревью немедленно, founder видит итог | ADR-0019 |
 | 21 | Исполняемый слой | **Методология исполняема, не только описана**: slash-команды `.claude/commands/`, SessionStart-хук авто-контекста, permission-allowlist, role-loader (спавн ролей из `<role>/`-доков без дублей) | ADR-0020 |
 | 22 | Автономный runner | **Строгий гейт-стек = merge-authority** (порт ORIION ADR-037): tripwire + коммит-привязанный evidence + escalation-policy + judge-панель + self-healing + RUN-QUEUE; машина ставится ВЫКЛ, вооружается founder'ом | ADR-0021 |
+| 23 | Live-gold политика | **Классификация AC на mock-verifiable и live-only**; live-only = явные gate-blocker'ы (не тихий deferred); founder даёт минимальный live-набор до P7 | ADR-0022 |
+| 24 | Дефолты P9/P10 | **Trial 14 дн self-serve / 30 дн партнёры; trust-ladder approval-gate + per-type opt-in сразу; цена Manual = Auto** (гейт Auto = DPA, не деньги); все `revisit_after` P0/данные | ADR-0023 |
+| 25 | Prompt-set generation | **Авто-ген N≈10 промптов из crawl** через LLM-router (RU-default), версионируются; модуль в P6; редактор в P9; Tier-0/probe переиспользуют | ADR-0024 |
+| 26 | Tier-0 UX | **Асинхронная job-модель**: POST → job_id мгновенно; результат поэтапно (Score+патчи ≤90с, visibility+gap ≤5мин) | ADR-0025 |
+| 27 | Frontend | **UI-SPEC (инвентарь экранов) + frontend-scope/AC в каждую фазу P6–P10**; каждая фаза отгружает UI-инкремент с API | ADR-0026 |
+| 28 | Prod-деплой | **Отдельная инфра-фаза P6.5** (Yandex Cloud IaC + домен + TLS + CD + observability + бэкапы); параллельно P6; P7 зависит | ADR-0027 |
+| 29 | Definition of Done MVP | **Golden e2e-сценарий** (URL→Tier0→…→verified Readiness-delta) в A→B gate + track-smoke'и после P7/P9/P10 | ADR-0028 |
 
 ---
 
@@ -114,14 +121,21 @@ Phase 0 + Phase A — детально (ниже). Phase B/C — рамочно 
 | **P3** | AI-Readiness Score (детерминированный) | read-only | 3 | P2 | scoring | geo | FR-1.3 |
 | **P4** | LLM-router (provider-agnostic, RU-default) | infra | 4 | P1 | llm-router | llm-router | NFR-3 |
 | **P5** | Probe-мониторинг (dual-geo, N≥5+CI) | read-only | 3 | P4 | probe, metrics | crawler-probe, llm-router | EPIC-2/FR-2.1–2.4 |
-| **P6** | Рекомендации + competitive gap + патчи + honest forecast | read-only | 3 | P3,P5 | recommendations, patches | geo, crawler-probe | EPIC-3/FR-3.1–3.5 |
-| **P7** | ⭐ Tier 0 Instant Audit (no-auth PLG) | read-only | 3 | P2–P6 | iam(public), все read-only | geo, devops, frontend | §4.1, §9.1, #17 |
+| **P6** | Рекомендации + competitive gap + патчи + honest forecast + PromptSetGen + кабинет | read-only | 3 | P3,P5 | recommendations, patches | geo, crawler-probe, frontend | EPIC-3/FR-3.1–3.5 |
+| **P6.5** | Production deploy (YC IaC + домен + TLS + CD + observability) | infra | 4 | P1 | — | devops, compliance | §9.3/NFR-1,7; ADR-0027 |
+| **P7** | ⭐ Tier 0 Instant Audit (no-auth PLG, async) | read-only | 3 | P2–P6, **P6.5** | iam(public), все read-only | geo, devops, frontend | §4.1, §9.1, #17 |
 | **P8** | Верификация (Manual proof-loop: re-crawl, deltas, evidence, алерты) | read-only | 3 | P6 | verification, notifications | crawler-probe | EPIC-5/FR-5.1–5.5 |
 | **P9** | Auth + биллинг + онбординг + дорожки | infra | 4 | P7,P8 | iam, billing | compliance, devops | EPIC-6/FR-6.1–6.3, §9.4 |
 | **P10** | ⭐ Auto track: WP-коннектор + auto-fix + trust-ladder + rollback + DPA | auto | 4 | **gated_by P0**, P9 | autofix, connectors | cms-connector, compliance, geo | EPIC-4/FR-4.1–4.7 |
 | → | **A→B gate** | — | — | P0–P10 | — | — | §8 |
 
 **Каждая фаза P1–P10 даёт проверяемый инкремент и проходит полный 9-шаговый цикл со своим гейтом.** Ценность монетизируется уже на P7 (Tier 0) и P9 (Manual track платно), Auto-fix (P10) — апгрейд.
+
+**Дополнения методологии (ADR-0022–0028, 2026-07-07):**
+- **P6.5 Production deploy** — инфра-фаза (tier 4), исполняется параллельно с P6; P7 (публичный запуск) зависит от неё (ADR-0027).
+- **Frontend в каждой фазе P6–P10** — каждая отгружает UI-инкремент вместе с API; инвентарь экранов в [`.planning/UI-SPEC.md`](../UI-SPEC.md) (ADR-0026).
+- **Класс AC на каждом критерии:** `mock-verifiable` (обязателен до PR) / `live-only` (blocked_pending_resource до founder-ресурса; не тихий deferred) — ADR-0022.
+- **Definition of Done всего MVP** — golden e2e в A→B gate + track-smoke'и после P7/P9/P10 (ADR-0028).
 
 ---
 
@@ -321,7 +335,9 @@ risks_delta: { opened: [], closed: [] }
 - **Никаких тихих пропусков:** live-gold невозможен → явный `deferred_live_gold` (reason/what/founder_action) в отчёте + гейте; founder видит на гейте.
 - **Условие авто-мерджа:** CI + `reviewer` + `auditor` + **verify (тесты + live-gold/deferral)** зелёные.
 - Live-gold ограничен малым golden-набором; стоимость — в cost-budget; funded-ключи — от founder (`PLACEHOLDERS.md`); scope объявляет `planner` в `PLAN.md`.
+- **Классификация AC (ADR-0022, с 2026-07-07):** каждый AC фазы помечен `[mock-verifiable]` (проверяем тестом/моком, обязателен зелёным до PR) или `[live-only]` (проверяем только против реального сервиса). Live-only AC — **явные gate-blocker'ы** (`blocked_pending_resource` в exit-gate), НЕ тихий `deferred_live_gold`. Фаза может смёржиться по mock-подмножеству, но exit-gate не закрывается без live-only части. Founder обязуется дать минимальный live-набор (test-WP + funded LLM-ключи + зарубежная egress-нода + PostHog + ЮKassa sandbox) до старта P7.
+- **Golden e2e (ADR-0028):** Definition of Done всего MVP = сквозной live-сценарий в A→B gate; сокращённые track-smoke'и — после P7/P9/P10.
 
 ---
 
-*Charter v1.4 · 2026-07-03 · источник истины для всех build-агентов WIZOR. Изменения — только через ADR. v1.1: +ADR-0017 (автономия; human-чекпоинт только на гейтах). v1.2: +ADR-0018 (тесты+live-gold перед PR; подтверждённая результатами автономность). v1.3: +ADR-0019 (PR открыт сразу, не draft). v1.4: +ADR-0020 (исполняемый слой: команды/хуки/role-loader) +ADR-0021 (автономный многофазный runner — порт ORIION ADR-037; tripwire/evidence/escalation/judge/heal).*
+*Charter v1.5 · 2026-07-07 · источник истины для всех build-агентов WIZOR. Изменения — только через ADR. v1.1: +ADR-0017 (автономия; human-чекпоинт только на гейтах). v1.2: +ADR-0018 (тесты+live-gold перед PR; подтверждённая результатами автономность). v1.3: +ADR-0019 (PR открыт сразу, не draft). v1.4: +ADR-0020 (исполняемый слой: команды/хуки/role-loader) +ADR-0021 (автономный многофазный runner — порт ORIION ADR-037; tripwire/evidence/escalation/judge/heal). v1.5 (grill-интервью founder'а): +ADR-0022 (live-gold mock/live классы) +ADR-0023 (дефолты P9/P10) +ADR-0024 (prompt-set gen) +ADR-0025 (async Tier-0) +ADR-0026 (frontend UI-SPEC + per-phase AC) +ADR-0027 (P6.5 prod-деплой) +ADR-0028 (golden e2e = DoD MVP).*
