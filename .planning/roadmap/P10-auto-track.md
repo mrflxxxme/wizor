@@ -8,11 +8,13 @@ track: auto
 depends_on: [P9]
 gated_by: [P0]
 contracts: [autofix, connectors]
-specialists: [cms-connector-specialist, compliance-152fz-specialist, geo-domain-expert]
+specialists: [cms-connector-specialist, compliance-152fz-specialist, geo-domain-expert, frontend-implementer]
 prd_refs: [EPIC-4/FR-4.1, EPIC-4/FR-4.2, EPIC-4/FR-4.3, EPIC-4/FR-4.4, EPIC-4/FR-4.5, EPIC-4/FR-4.6, EPIC-4/FR-4.7, §9.1, §3/принцип_4]
 model_default: sonnet
 ---
-<!-- HEAD-SUMMARY (≤500т): ⭐ Главный дифференциатор. AUTO-track: WP REST API + кастомный plugin → авто-применение машиночитаемого слоя (JSON-LD, robots.txt, llms.txt, IndexNow). Trust-ladder: approval-gate → opt-in авто-применение. Append-only audit log + 1-click rollback + DPA-флоу. FAQ только через review-flow (staging → подтверждение → публикация). GATED_BY P0 (H1/H5 = go). 5-линзовый аудит (tier 4). -->
+<!-- HEAD-SUMMARY (≤500т): ⭐ Главный дифференциатор. AUTO-track: WP REST API + кастомный plugin → авто-применение машиночитаемого слоя (JSON-LD, robots.txt, llms.txt, IndexNow). Trust-ladder (дефолт ADR-0023): approval-gate → per-type opt-in сразу (без порога); FAQ никогда не auto. Append-only audit log + 1-click rollback + DPA-флоу. FAQ только через review-flow (staging → подтверждение → публикация). Frontend (ADR-0026): approve-очередь, FAQ-review, audit log/rollback, DPA-флоу. GATED_BY P0 (H1/H5 = go). 5-линзовый аудит (tier 4).
+
+WP end-to-end (реальный сайт) — по природе live-only (ADR-0022). Каждый AC помечен классом. -->
 
 ## Goal
 
@@ -25,13 +27,14 @@ model_default: sonnet
   - robots.txt (правки AI-бот разрешений).
   - Генерация/публикация `llms.txt` / `llms-full.txt`.
   - IndexNow-пинг (уведомление Bing/Я.Вебмастер).
-- **Trust-ladder (FR-4.2):** по умолчанию каждое изменение в очередь на approve (`pending`); пользователь может включить `auto-apply` по конкретному типу машиночитаемой правки (per-type opt-in). Видимый контент (FAQ) — **никогда** auto-apply.
+- **Trust-ladder (FR-4.2, дефолт ADR-0023):** по умолчанию каждое изменение в очередь на approve (`pending`); пользователь может включить `auto-apply` по конкретному типу машиночитаемой правки (per-type opt-in) **сразу, без порога «после N успешных approve»**. Видимый контент (FAQ) — **никогда** auto-apply.
 - **FAQ review-flow (FR-4.3):** staging-предпросмотр → явное подтверждение пользователя → публикация. Без WP REST напрямую — только через review-модуль. Авто-публикация FAQ — физически заблокирована.
 - **Append-only audit log (FR-4.4):** каждая правка: `fix_id`, `type`, `target_url`, `diff`, `applied_by`, `initiated_by`, `applied_at`, `status`. Записи неизменяемы.
 - **Версионирование + 1-click rollback (FR-4.5):** перед применением сохраняется snapshot предыдущего состояния; rollback — один эндпоинт `POST /autofix/{id}/rollback`; откат тоже логируется.
 - **DPA-флоу (FR-4.6):** до первой авто-правки — акцепт DPA (DataProcessingAgreement): форма → подпись → хранение (tenant_id, signed_at, version); auto-fix недоступен без DPA. Факт акцепта неизменяем.
 - **Manual track совместимость (FR-4.7):** весь путь аудит→рекомендации→патчи работает без WP-коннектора; API/DPA требуются **только** для Auto track, не для входа в продукт.
 - **Идемпотентность (NFR-4):** повторное применение одной правки → нет дублирования; вторичный вызов → `no-op` с `status: already_applied`.
+- **Frontend (ADR-0026, UI-SPEC):** `approve-queue` (trust-ladder: pending-очередь + per-type opt-in toggle), `faq-review` (staging-предпросмотр → явное подтверждение → публикация; кнопки авто-публикации FAQ физически нет), `audit-log` (append-only журнал + 1-click rollback на записи), `dpa` (форма акцепта DPA до первой авто-правки, DpaGate). Все с честной индикацией статусов правок.
 
 ## Out of scope
 
@@ -60,14 +63,16 @@ model_default: sonnet
 
 ## Acceptance criteria
 
-- **AC-1 (WP end-to-end):** на тестовом WP-сайте: `POST /autofix/apply {fix_id}` → JSON-LD появился в `<head>` (Playwright verify); повторный вызов → `no-op`.
-- **AC-2 (trust-ladder default):** новый Auto-тенант без opt-in → фикс создаётся в `status: pending`, не применяется автоматически.
-- **AC-3 (FAQ never auto):** попытка `auto-apply` фикса типа `faq_content` → 422 `cannot_auto_apply_visible_content`; тест фиксирует инвариант (см. §6 charter, инвариант 10).
-- **AC-4 (audit log append-only):** после применения правки → `audit_log` запись создана с `diff`; попытка UPDATE/DELETE этой записи через ORM → ошибка/невозможно (DB constraint).
-- **AC-5 (rollback):** `POST /autofix/{id}/rollback` → JSON-LD удалён из WP `<head>` (Playwright verify); в audit_log новая запись `action: rollback`.
-- **AC-6 (DPA gate):** `POST /autofix/apply` без акцепта DPA → 403 `dpa_required`; после акцепта DPA → 200.
-- **AC-7 (идемпотентность):** повторный `POST /autofix/apply` для уже применённого фикса → `{"status": "already_applied", "applied_at": "<ts>"}`, никаких изменений на сайте.
-- **AC-8 (Manual track):** тенант без WP-коннектора → получает полный набор патчей в `copy-paste` режиме; `POST /autofix/apply` → 403 `connector_not_configured` (не `dpa_required`).
+- **AC-1 (WP end-to-end) [live-only]:** на тестовом WP-сайте: `POST /autofix/apply {fix_id}` → JSON-LD появился в `<head>` (Playwright verify); повторный вызов → `no-op`. Blocked до founder-owned test-WP.
+- **AC-2 (trust-ladder default) [mock-verifiable]:** новый Auto-тенант без opt-in → фикс создаётся в `status: pending`, не применяется автоматически. Per-type opt-in доступен сразу (ADR-0023, без порога).
+- **AC-3 (FAQ never auto) [mock-verifiable]:** попытка `auto-apply` фикса типа `faq_content` → 422 `cannot_auto_apply_visible_content`; тест фиксирует инвариант (см. §6 charter, инвариант 10).
+- **AC-4 (audit log append-only) [mock-verifiable]:** после применения правки → `audit_log` запись создана с `diff`; попытка UPDATE/DELETE этой записи через ORM → ошибка/невозможно (DB constraint).
+- **AC-5 (rollback) [live-only]:** `POST /autofix/{id}/rollback` → JSON-LD удалён из WP `<head>` (Playwright verify); в audit_log новая запись `action: rollback`. Blocked до test-WP.
+- **AC-6 (DPA gate) [mock-verifiable]:** `POST /autofix/apply` без акцепта DPA → 403 `dpa_required`; после акцепта DPA → (доходит до connector). Проверяется без реального WP (mock-коннектор).
+- **AC-7 (идемпотентность) [mock-verifiable]:** повторный `POST /autofix/apply` для уже применённого фикса → `{"status": "already_applied", "applied_at": "<ts>"}`, никаких изменений (mock-коннектор фиксирует no-op).
+- **AC-8 (Manual track) [mock-verifiable]:** тенант без WP-коннектора → получает полный набор патчей в `copy-paste` режиме; `POST /autofix/apply` → 403 `connector_not_configured` (не `dpa_required`).
+- **AC-9 (frontend auto-track, ADR-0026) [mock-verifiable]:** `approve-queue` (pending-список + per-type toggle), `faq-review` (staging→подтверждение, нет кнопки авто-публикации), `audit-log` + rollback-кнопка, `dpa` (DpaGate) рендерятся против mock-API (vitest/RTL); FAQ-review физически не имеет пути авто-публикации.
+- **AC-10 (idempotency live) [live-only]:** повторное применение на реальном WP → сайт без дублирования (Playwright verify HTML идентичен). Blocked до test-WP.
 
 ## Contracts touched
 
@@ -80,15 +85,19 @@ model_default: sonnet
 | Критерий | Порог |
 |---|---|
 | P0 gate пройден | `P0-to-heavy-autofix.md` status=passed |
-| WP end-to-end | AC-1 (JSON-LD в HEAD) |
-| Trust-ladder default pending | AC-2 пройден |
-| FAQ never auto (инвариант §6.10) | AC-3 (422) |
-| Audit log append-only | AC-4 (DB constraint) |
-| 1-click rollback | AC-5 (JSON-LD удалён + лог) |
-| DPA gate | AC-6 (403 без DPA) |
-| Идемпотентность | AC-7 (no-op на повтор) |
-| Manual track совместимость | AC-8 (403 connector_not_configured) |
+| Trust-ladder default pending | AC-2 (per-type opt-in без порога, ADR-0023) [mock] |
+| FAQ never auto (инвариант §6.10) | AC-3 (422) [mock] |
+| Audit log append-only | AC-4 (DB constraint) [mock] |
+| DPA gate | AC-6 (403 без DPA) [mock] |
+| Идемпотентность | AC-7 (no-op на повтор) [mock] |
+| Manual track совместимость | AC-8 (403 connector_not_configured) [mock] |
+| Frontend auto-track | AC-9 (approve/faq-review/audit-log/dpa) [mock] |
+| WP end-to-end apply | AC-1 (JSON-LD в HEAD) [live-only, blocked: test-WP] |
+| 1-click rollback | AC-5 (JSON-LD удалён + лог) [live-only, blocked: test-WP] |
+| Идемпотентность live | AC-10 (no-op на реальном WP) [live-only, blocked: test-WP] |
 | Аудит tier 4 | PASS (5 линз: correctness · security · compliance · tests · architecture) |
+
+**Live-only AC блокированы до founder-ресурса** (ADR-0022): AC-1/5/10 требуют founder-owned test-WP. Mock-verifiable подмножество (AC-2/3/4/6/7/8/9 + tier-4 аудит) мёржится раньше; гейт фазы **и** P0-gate (H1/H5) — оба обязательны до закрытия.
 
 ## Decomposition hints for planner
 

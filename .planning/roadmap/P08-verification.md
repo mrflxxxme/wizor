@@ -8,11 +8,13 @@ track: read-only
 depends_on: [P6]
 gated_by: []
 contracts: [verification, notifications]
-specialists: [crawler-probe-specialist]
+specialists: [crawler-probe-specialist, frontend-implementer]
 prd_refs: [EPIC-5/FR-5.1, EPIC-5/FR-5.2, EPIC-5/FR-5.3, EPIC-5/FR-5.4, EPIC-5/FR-5.5]
 model_default: sonnet
 ---
-<!-- HEAD-SUMMARY (≤500т): Read-only фаза. Замыкает цикл доказательств: Readiness-delta (быстро, детерминированно), Visibility/Citation-delta (медленно, с полосой шума), evidence-захват (скриншоты ответов ИИ), алерты деградации, re-crawl верификация применённого вручную (FR-5.5 — работает без API). Ключевой retention-аргумент продукта: «вот доказательство, что правки работают». -->
+<!-- HEAD-SUMMARY (≤500т): Read-only фаза. Замыкает цикл доказательств: Readiness-delta (быстро, детерминированно), Visibility/Citation-delta (медленно, с полосой шума), evidence-захват (скриншоты ответов ИИ), алерты деградации, re-crawl верификация применённого вручную (FR-5.5 — работает без API). Frontend (ADR-0026): visibility trends (TrendChart с CI-band, «нет ложных побед») + alert settings. Ключевой retention-аргумент продукта: «вот доказательство, что правки работают».
+
+Каждый AC помечен классом (ADR-0022): [mock-verifiable] обязателен до PR; [live-only] blocked_pending_resource. -->
 
 ## Goal
 
@@ -25,6 +27,7 @@ model_default: sonnet
 - **Evidence-захват (FR-5.3):** снапшот ответа ИИ (текст) + скриншот (Playwright) для каждого промпта × модели; хранение с датой, prompt_id, model_id; привязка к до/после точкам.
 - **Алерты деградации (FR-5.4):** при падении метрики вне полосы шума → email + Telegram + webhook. Настраивается тенантом (каналы, пороги).
 - **Re-crawl верификация без API (FR-5.5):** повторный краул публичных страниц клиента подтверждает, что патч из Manual track применён в HTML (schema/FAQ/robots/llms.txt присутствует). Score пересчитывается по фактическому HTML.
+- **Frontend (ADR-0026, UI-SPEC):** `visibility` (тренд-график `TrendChart` с **полосой шума / CI-band**; «значимый рост» показывается только при Δ вне half-width CI, иначе «в пределах шума» — визуальный enforce инварианта «нет ложных побед»); `alerts` (настройки каналов email/Telegram/webhook + пороги на тенанта). Readiness-delta показывается на dashboard (переиспользует P6-кабинет).
 
 ## Out of scope
 
@@ -48,13 +51,15 @@ model_default: sonnet
 
 ## Acceptance criteria
 
-- **AC-1 (Readiness-delta):** `POST /api/v1/sites/{id}/verify/readiness` после добавления FAQPage-schema вручную → ответ содержит `delta: +N`, `reason: "FAQPage schema detected"`, `new_score: X`.
-- **AC-2 (Visibility-delta — no false positives):** тест с mock-данными: если Δ visibility < CI half-width → `is_significant: false`; только при Δ > CI → `is_significant: true`. Тест фиксирует инвариант «нет ложных побед».
-- **AC-3 (Evidence):** после probe-прогона скриншот Playwright сохранён в `evidence_snapshots` (site_id, prompt_id, model, captured_at, image_path); `image_path` существует (file check).
-- **AC-4 (Алерт):** при Mock-падении метрики Visibility за полосу шума — в тестовом окружении email-адаптер вызван (mock assert), Telegram-адаптер вызван; `notification_log` содержит запись.
-- **AC-5 (Re-crawl Manual):** тестовый HTML с добавленной FAQPage-schema → re-crawl детектирует присутствие, Score пересчитан, delta > 0. Без использования CMS API.
-- **AC-6 (No false alert):** Mock-данные: метрика упала, но внутри CI → алерт НЕ отправлен. Тест фиксирует.
-- **AC-7 (Tenant алерт-настройки):** тенант с `alert_channels: [email]` → Telegram не вызывается (mock).
+- **AC-1 (Readiness-delta) [mock-verifiable]:** `POST /api/v1/sites/{id}/verify/readiness` после добавления FAQPage-schema вручную → ответ содержит `delta: +N`, `reason: "FAQPage schema detected"`, `new_score: X`.
+- **AC-2 (Visibility-delta — no false positives) [mock-verifiable]:** тест с mock-данными: если Δ visibility < CI half-width → `is_significant: false`; только при Δ > CI → `is_significant: true`. Тест фиксирует инвариант «нет ложных побед».
+- **AC-3 (Evidence) [mock-verifiable]:** после probe-прогона скриншот Playwright сохранён в `evidence_snapshots` (site_id, prompt_id, model, captured_at, image_path); `image_path` существует (file check).
+- **AC-4 (Алерт) [mock-verifiable]:** при Mock-падении метрики Visibility за полосу шума — в тестовом окружении email-адаптер вызван (mock assert), Telegram-адаптер вызван; `notification_log` содержит запись.
+- **AC-5 (Re-crawl Manual) [mock-verifiable]:** тестовый HTML с добавленной FAQPage-schema → re-crawl детектирует присутствие, Score пересчитан, delta > 0. Без использования CMS API.
+- **AC-6 (No false alert) [mock-verifiable]:** Mock-данные: метрика упала, но внутри CI → алерт НЕ отправлен. Тест фиксирует.
+- **AC-7 (Tenant алерт-настройки) [mock-verifiable]:** тенант с `alert_channels: [email]` → Telegram не вызывается (mock).
+- **AC-8 (frontend тренды + алерты, ADR-0026) [mock-verifiable]:** `visibility` рендерит `TrendChart` с CI-band против mock-тренда; при Δ внутри CI подпись «в пределах шума» (не «рост»), при Δ вне CI — «значимый рост»; `alerts` сохраняет каналы/пороги. vitest/RTL.
+- **AC-9 (live алерт-доставка) [live-only]:** реальное падение метрики → реальное email + Telegram-сообщение доставлено (проверка в тест-ящике/тест-канале). Blocked до Mailgun/Telegram-токенов (P6.5/PLACEHOLDERS).
 
 ## Contracts touched
 
@@ -71,9 +76,13 @@ model_default: sonnet
 | No false positives Visibility | AC-2 пройден |
 | Evidence-скриншоты | AC-3 (файл сохранён) |
 | Алерт при деградации | AC-4 (email + Telegram вызваны) |
-| Re-crawl без API | AC-5 пройден |
-| No false alert | AC-6 пройден |
+| Re-crawl без API | AC-5 пройден [mock] |
+| No false alert | AC-6 пройден [mock] |
+| Frontend тренды+алерты | AC-8 (TrendChart CI-band, «нет ложных побед» в UI) [mock] |
+| Live алерт-доставка | AC-9 [live-only, blocked: Mailgun/Telegram-токены/P6.5] |
 | Аудит tier 3 | PASS (3 линзы: correctness · security · compliance) |
+
+**Live-only AC блокированы до founder-ресурса** (ADR-0022): AC-9 требует Mailgun/Telegram-токенов. Mock-verifiable подмножество (AC-1..8 + tier-3 аудит) мёржится раньше; гейт не закрывается без AC-9.
 
 ## Decomposition hints for planner
 
@@ -82,5 +91,6 @@ model_default: sonnet
 3. `crawler-probe-specialist` (Sonnet) реализует re-crawl для Manual track (FR-5.5): краул HTML + schema-детект.
 4. `backend-implementer` реализует evidence-захват (Playwright скриншоты в Celery-задаче).
 5. `backend-implementer` реализует `NotificationService` (email/Telegram/webhook адаптеры + tenant конфиг).
-6. `tester` пишет тесты: no-false-positive (AC-2, AC-6), re-crawl без API (AC-5).
-7. Аудит tier 3: correctness (no false wins) · security (скриншоты — ПД?) · compliance.
+6. `frontend-implementer` (ADR-0026, UI-SPEC): `visibility` (TrendChart с CI-band, правило is_significant в UI), `alerts` (каналы+пороги); Readiness-delta на dashboard.
+7. `tester` пишет тесты: no-false-positive (AC-2, AC-6), re-crawl без API (AC-5), frontend «нет ложных побед».
+8. Аудит tier 3: correctness (no false wins) · security (скриншоты — ПД?) · compliance.

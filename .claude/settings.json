@@ -1,0 +1,81 @@
+{
+  "_comment": "WIZOR harness settings — РЕКОМЕНДОВАННЫЙ шаблон (ADR-0020 executable layer). FOUNDER ACTION чтобы применить: скопируй/смёржь в `.claude/settings.json` (создай файл, если нет). Claude НЕ self-install'ит settings — permission-allowlist и хуки меняют execution-authority харнесса и являются founder-owned переключателями (тот же принцип, что settings.hook-snippet.json). Apply: `cp .claude/autonomy/settings.recommended.json .claude/settings.json` (затем при желании смёржь premerge-хук из settings.hook-snippet.json). Что даёт: (1) permissions.allow — рутинные dev-команды не дёргают founder за разрешением → автономия/минимальное включение; (2) permissions.deny — защита секретов (.env) + запрет force-push в main; (3) SessionStart-хук — авто-контекст в каждой сессии (вкл. Agent-tool и headless claude -p).",
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git remote:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git restore:*)",
+      "Bash(git stash:*)",
+      "Bash(git merge:*)",
+      "Bash(git revert:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git worktree:*)",
+      "Bash(make:*)",
+      "Bash(pytest:*)",
+      "Bash(ruff:*)",
+      "Bash(mypy:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(uv:*)",
+      "Bash(pip:*)",
+      "Bash(pip-audit:*)",
+      "Bash(alembic:*)",
+      "Bash(pre-commit:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(pnpm:*)",
+      "Bash(node:*)",
+      "Bash(docker compose:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh run:*)",
+      "Bash(gh api:*)",
+      "Bash(python scripts/autonomy/:*)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(backend/.env)",
+      "Read(infra/.env)",
+      "Edit(**/.env)",
+      "Write(**/.env)",
+      "Bash(rm -rf /:*)",
+      "Bash(git push --force origin main:*)",
+      "Bash(git push -f origin main:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/autonomy/premerge_hook.py"
+          }
+        ]
+      }
+    ]
+  }
+}

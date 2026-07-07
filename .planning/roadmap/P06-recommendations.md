@@ -8,11 +8,13 @@ track: read-only
 depends_on: [P3, P5]
 gated_by: []
 contracts: [recommendations, patches]
-specialists: [geo-domain-expert, crawler-probe-specialist]
+specialists: [geo-domain-expert, crawler-probe-specialist, frontend-implementer]
 prd_refs: [EPIC-3/FR-3.1, EPIC-3/FR-3.2, EPIC-3/FR-3.3, EPIC-3/FR-3.4, EPIC-3/FR-3.5]
 model_default: sonnet
 ---
-<!-- HEAD-SUMMARY (≤500т): Read-only фаза. Реализует полный движок рекомендаций: приоритизированный список фиксов с impact-прогнозом, FAQ-генератор (answer-first, RU-default, только draft), конкурентный gap-анализ (краул цитируемых конкурентов), copy-paste патчи для Manual track, честный прогноз (Readiness-проекция детерминированно + Visibility только диапазоном). Все рекомендации read-only — никакой записи на сайт клиента. -->
+<!-- HEAD-SUMMARY (≤500т): Read-only фаза. Реализует полный движок рекомендаций: приоритизированный список фиксов с impact-прогнозом, FAQ-генератор (answer-first, RU-default, только draft), конкурентный gap-анализ (краул цитируемых конкурентов), copy-paste патчи для Manual track, честный прогноз (Readiness-проекция детерминированно + Visibility только диапазоном). Плюс PromptSetGenerator (ADR-0024, авто-промпты из crawl) и первый авторизованный кабинет (ADR-0026: dashboard + recommendations + competitive gap). Все рекомендации read-only — никакой записи на сайт клиента.
+
+Каждый AC помечен классом (ADR-0022): [mock-verifiable] — проверяем тестом/моком, обязателен до PR; [live-only] — только против реального сервиса, blocked_pending_resource до founder-ресурса. -->
 
 ## Goal
 
@@ -26,6 +28,8 @@ model_default: sonnet
 - **Copy-paste патчи для Manual track (FR-3.4):** самодостаточный артефакт на каждый фикс: JSON-LD snippet, строки robots.txt, контент llms.txt, FAQ-HTML блок + инструкция «куда вставить». Доступны без API.
 - **Прогноз честный (FR-3.5):** Readiness-проекция (детерминированно) — «после этих фиксов Score X→Y»; competitive gap — доказательное сравнение без выдуманных %; Visibility-прогноз — только диапазон+доверие+индустриальные бенчмарки, помечен как оценка. **Нигде не показывается гарантированный Visibility-%.**
 - **Валидатор патчей:** JSON-LD-сниппеты проходят через валидатор (P2/FR-1.2) до попадания в артефакт.
+- **PromptSetGenerator (ADR-0024):** авто-генерация N≈10 целевых промптов из crawl-данных сайта (тематика/услуги/гео) через LLM-router (RU-default, §6.6); результат — версионированный `prompt_set` (переиспользует схему P5), `prompt_set_version` привязывается к probe-прогонам. Первый массовый потребитель — competitive gap (нужны промпты, чтобы найти цитируемых конкурентов). Модуль вызывается также из Tier-0 (P7) и regular probe (P5).
+- **Frontend — первый авторизованный кабинет (ADR-0026, UI-SPEC):** `dashboard` (Score + компоненты, ScoreGauge/ComponentBreakdown), `recommendations` (прио-список + copy-paste PatchCard с типом/каналом, FAQ-draft-бейдж), `competitive-gap` (cited-конкуренты + структурные отличия). Honest-forecast в UI: `ForecastBadge` (range+confidence+disclaimer), нигде гарантированного Visibility-%.
 
 ## Out of scope
 
@@ -51,13 +55,16 @@ model_default: sonnet
 
 ## Acceptance criteria
 
-- **AC-1 (прио-лист):** `GET /api/v1/sites/{id}/recommendations` возвращает ≥3 фикса, отсортированных по `impact_score` DESC; у каждого `type` и `apply_channel`.
-- **AC-2 (FAQ draft):** сгенерированный FAQ имеет `status: draft`; попытка опубликовать без `review_approved: true` → 422 ошибка. Тест фиксирует инвариант.
-- **AC-3 (competitive gap):** для промпта с ≥1 cited-конкурентом в БД — ответ содержит `cited_competitors[]` с полями `url`, `schema_types[]`, `has_faq`, `has_answer_first`; у клиента те же поля для сравнения.
-- **AC-4 (copy-paste патч):** JSON-LD-артефакт из рекомендации проходит schema-валидатор (FR-1.2) без ошибок.
-- **AC-5 (honest forecast):** при любом вызове `GET /recommendations` поле `visibility_forecast` содержит `range_low`, `range_high`, `confidence`, `disclaimer`; поле `visibility_guarantee` отсутствует в схеме (тест на schema-validate).
-- **AC-6 (Manual track):** вся цепочка аудит→рекомендации→патчи работает без write-доступа к сайту клиента (тест: mock-сайт без CMS-коннектора → полный набор рекомендаций получен).
-- **AC-7 (FAQ длина):** сгенерированный FAQ ≥ 50 и ≤ 150 слов (тест с deterministic mock LLM).
+- **AC-1 (прио-лист) [mock-verifiable]:** `GET /api/v1/sites/{id}/recommendations` возвращает ≥3 фикса, отсортированных по `impact_score` DESC; у каждого `type` и `apply_channel`.
+- **AC-2 (FAQ draft) [mock-verifiable]:** сгенерированный FAQ имеет `status: draft`; попытка опубликовать без `review_approved: true` → 422 ошибка. Тест фиксирует инвариант.
+- **AC-3 (competitive gap) [mock-verifiable]:** для промпта с ≥1 cited-конкурентом в БД — ответ содержит `cited_competitors[]` с полями `url`, `schema_types[]`, `has_faq`, `has_answer_first`; у клиента те же поля для сравнения.
+- **AC-4 (copy-paste патч) [mock-verifiable]:** JSON-LD-артефакт из рекомендации проходит schema-валидатор (FR-1.2) без ошибок.
+- **AC-5 (honest forecast) [mock-verifiable]:** при любом вызове `GET /recommendations` поле `visibility_forecast` содержит `range_low`, `range_high`, `confidence`, `disclaimer`; поле `visibility_guarantee` отсутствует в схеме (тест на schema-validate).
+- **AC-6 (Manual track) [mock-verifiable]:** вся цепочка аудит→рекомендации→патчи работает без write-доступа к сайту клиента (тест: mock-сайт без CMS-коннектора → полный набор рекомендаций получен).
+- **AC-7 (FAQ длина) [mock-verifiable]:** сгенерированный FAQ ≥ 50 и ≤ 150 слов (тест с deterministic mock LLM).
+- **AC-8 (PromptSetGenerator, ADR-0024) [mock-verifiable]:** из фиксированных crawl-данных (mock LLM) генерируется `prompt_set` с N≈10 промптами; результат версионирован; повторный вызов с тем же входом детерминирован по структуре. `prompt_set_version` сохраняется и привязываем к probe-прогону.
+- **AC-9 (frontend кабинет, ADR-0026) [mock-verifiable]:** страницы `dashboard`/`recommendations`/`competitive-gap` рендерятся против mock-API (vitest/RTL); `ForecastBadge` показывает range+confidence+disclaimer; в DOM нигде нет гарантированного `%` без disclaimer; PatchCard имеет copy-to-clipboard.
+- **AC-10 (competitive gap live, ADR-0022) [live-only]:** для реального сайта в известной нише — probe находит ≥1 реального цитируемого конкурента, краул конкурента отдаёт его schema/FAQ-сигналы. Blocked до funded LLM-ключей + egress-ноды.
 
 ## Contracts touched
 
@@ -74,17 +81,23 @@ model_default: sonnet
 | FAQ draft-only инвариант | AC-2 (422 без review) |
 | Competitive gap | AC-3 (cited_competitors с деталями) |
 | Патч валидация | AC-4 (0 schema-ошибок) |
-| Honest forecast | AC-5 (нет `visibility_guarantee`) |
-| Manual track без API | AC-6 пройден |
+| Honest forecast | AC-5 (нет `visibility_guarantee`) [mock] |
+| Manual track без API | AC-6 пройден [mock] |
+| PromptSetGenerator | AC-8 (N≈10, версионирован) [mock] |
+| Frontend кабинет | AC-9 (dashboard/recommendations/gap, forecast-инвариант в UI) [mock] |
+| Competitive gap live | AC-10 [live-only, blocked_pending_resource: funded LLM + egress] |
 | Аудит tier 3 | PASS (3 линзы: correctness · security · compliance) |
+
+**Live-only AC блокированы до founder-ресурса** (ADR-0022): AC-10 требует funded LLM-ключей + зарубежной egress-ноды. Mock-verifiable подмножество (AC-1..9 + tier-3 аудит) мёржится раньше; гейт фазы не закрывается без AC-10.
 
 ## Decomposition hints for planner
 
-1. `geo-domain-expert` (Opus) задаёт impact-формулу, приоритеты фиксов, правила competitive gap.
-2. `crawler-probe-specialist` (Sonnet) реализует краул cited-конкурентов (из probe-данных P5).
-3. `backend-implementer` создаёт `RecommendationEngine` (Score + probe → прио-лист), Alembic-миграции.
-4. `backend-implementer` интегрирует LLM-router для FAQ-генерации (RU-default, draft-only).
+1. `geo-domain-expert` (Opus) задаёт impact-формулу, приоритеты фиксов, правила competitive gap, шаблон авто-промптов (ADR-0024).
+2. `crawler-probe-specialist` (Sonnet) реализует краул cited-конкурентов (из probe-данных P5) + `PromptSetGenerator` (crawl → LLM-router → prompt_set).
+3. `backend-implementer` создаёт `RecommendationEngine` (Score + probe → прио-лист), Alembic-миграции (recommendations, competitor_gaps, patch_artifacts, prompt_set_version binding).
+4. `backend-implementer` интегрирует LLM-router для FAQ-генерации (RU-default, draft-only) и для PromptSetGenerator.
 5. `backend-implementer` реализует `PatchArtifactBuilder` + интеграцию schema-валидатора.
 6. `backend-implementer` создаёт FastAPI эндпоинты (recommendations, patches).
-7. `tester` пишет тесты: FAQ-draft инвариант, honest forecast (нет guarantee), Manual track без API.
-8. Аудит tier 3: correctness (прогноз без гарантий) · security · compliance (ПД в FAQ, RU-модели).
+7. `frontend-implementer` (ADR-0026, UI-SPEC): страницы dashboard/recommendations/competitive-gap; компоненты ScoreGauge, ComponentBreakdown, PatchCard, ForecastBadge, RecommendationRow.
+8. `tester` пишет тесты: FAQ-draft инвариант, honest forecast (нет guarantee), Manual track без API, PromptSetGenerator, frontend-рендер против mock-API.
+9. Аудит tier 3: correctness (прогноз без гарантий) · security · compliance (ПД в FAQ, RU-модели).

@@ -1,4 +1,4 @@
-<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 21 принятое решение: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия) + ADR-0018 (тесты+live-gold перед PR) + ADR-0019 (PR открыт сразу, не draft) + ADR-0020 (исполняемый слой: команды/хуки/role-loader) + ADR-0021 (автономный runner — порт ORIION ADR-037). ADR-0001–0018 — 2026-06-23, ADR-0019 — 2026-06-24, ADR-0020/0021 — 2026-07-03. -->
+<!-- HEAD-SUMMARY (≤500т): Индекс всех ADR WIZOR. 28 принятых решений: 12 workflow-харнесс (ADR-0001–0012) + 4 product-baseline (ADR-0013–0016) + ADR-0017 (автономия) + ADR-0018 (тесты+live-gold) + ADR-0019 (PR открыт сразу) + ADR-0020 (исполняемый слой) + ADR-0021 (автономный runner — порт ORIION ADR-037) + ADR-0022–0028 (grill-интервью 2026-07-07: live-gold классы, дефолты P9/P10, prompt-set gen, async Tier-0, frontend UI-SPEC, P6.5 prod-деплой, golden e2e DoD). ADR-0001–0018 — 2026-06-23, ADR-0019 — 2026-06-24, ADR-0020/0021 — 2026-07-03, ADR-0022–0028 — 2026-07-07. -->
 
 # ADR Index — WIZOR
 
@@ -27,6 +27,13 @@
 | ADR-0019 | open-pr-not-draft | PR создаётся сразу открытым (ready-for-review), не draft; чеки/ревью немедленно; founder видит итог; дополняет ADR-0017, amends ADR-0009 | accepted | 2026-06-24 |
 | ADR-0020 | executable-harness-layer | Исполняемый слой: slash-команды + SessionStart-хук + permission-allowlist + role-loader (спавн из `<role>/`-доков без дублей); amends ADR-0001/0002 | accepted | 2026-07-03 |
 | ADR-0021 | autonomous-multiphase-runner | Автономный runner: строгий гейт-стек = merge-authority (порт ORIION ADR-037; tripwire/evidence/escalation/judge/heal); amends ADR-0017/0018/0009 | accepted | 2026-07-03 |
+| ADR-0022 | live-gold-resource-policy-and-ac-classification | Классификация AC на mock-verifiable/live-only; live-only = явные gate-blocker'ы; founder даёт live-набор до P7; amends ADR-0018 | accepted | 2026-07-07 |
+| ADR-0023 | p9-p10-product-defaults | Дефолты: trial 14/30 дн; trust-ladder approval-gate + per-type opt-in сразу; цена Manual = Auto; revisit_after P0/данные | accepted | 2026-07-07 |
+| ADR-0024 | prompt-set-generation | Авто-ген N≈10 промптов из crawl через LLM-router (RU-default), версионируются; модуль в P6, редактор в P9 | accepted | 2026-07-07 |
+| ADR-0025 | async-tier0-audit | Tier-0 async job-модель: POST→job_id мгновенно; результат поэтапно (Score+патчи ≤90с, visibility+gap ≤5мин) | accepted | 2026-07-07 |
+| ADR-0026 | frontend-ui-spec-and-per-phase-ac | UI-SPEC (инвентарь экранов) + frontend-scope/AC в каждую фазу P6–P10 | accepted | 2026-07-07 |
+| ADR-0027 | production-deploy-phase | Отдельная инфра-фаза P6.5 (YC IaC + домен + TLS + CD + observability); параллельно P6; P7 зависит | accepted | 2026-07-07 |
+| ADR-0028 | golden-e2e-mvp-acceptance | Golden e2e-сценарий = DoD MVP в A→B gate + track-smoke'и после P7/P9/P10 | accepted | 2026-07-07 |
 
 ## Связи с Charter §2 (decision log)
 
@@ -53,6 +60,13 @@
 | 20 | Состояние PR (open, не draft) | ADR-0019 |
 | 21 | Исполняемый слой (команды/хуки/role-loader) | ADR-0020 |
 | 22 | Автономный многофазный runner (порт ADR-037) | ADR-0021 |
+| 23 | Live-gold политика (mock/live классы) | ADR-0022 |
+| 24 | Дефолты P9/P10 | ADR-0023 |
+| 25 | Prompt-set generation | ADR-0024 |
+| 26 | Tier-0 UX (async) | ADR-0025 |
+| 27 | Frontend (UI-SPEC + per-phase AC) | ADR-0026 |
+| 28 | Prod-деплой (P6.5) | ADR-0027 |
+| 29 | Definition of Done MVP (golden e2e) | ADR-0028 |
 | Product-1 | Multi-tenancy | ADR-0013 |
 | Product-2 | Dual-geo probe | ADR-0014 |
 | Product-3 | Trust ladder + DPA | ADR-0015 |
