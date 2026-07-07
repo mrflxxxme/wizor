@@ -152,6 +152,11 @@ async def test_tenant_isolation_probe_and_metrics() -> None:
             metrics=_sample_metrics(),
             calculated_at=now,
         )
+        # Собственные probe_runs TEST-тенанта: изоляция проверяется содержательно —
+        # TEST видит РОВНО свои 5, а не 5 чужого тенанта (без этой вставки assert==5 ложен).
+        await save_probe_runs(
+            session, tenant_id=TEST_TENANT_ID, site_id=TEST_SITE_ID, runs=_sample_runs()
+        )
         await session.commit()
         own_id = own_metric.id
 
