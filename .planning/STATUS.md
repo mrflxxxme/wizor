@@ -1,9 +1,9 @@
-<!-- HEAD-SUMMARY (≤500т): Rolling-состояние WIZOR. Сейчас (2026-07-05): **P4 LLM-router реализован новой методологией** — provider-agnostic gateway, RU-default (§6.6 структурно), uncertainty (N≥5+t-interval), cost-guard, retry/fault-isolation; ключи=PLACEHOLDERS (§6.9). review CHANGES→fixed (AC-5 fault-isolation был иллюзорным — httpx→ProviderCallError) + audit tier-4 **PASS** (5 линз; §6.6 атакован 4 вектора, 0 утечек); verify зелёный (137 тестов, cov 88.8%). Ждёт founder-ревью P4 PR. Вмёржено ранее: P3 Score (#5), P2 Crawler (#4), методология ORIION (#2/#3), P1. Машина ВЫКЛ. Пишет только memory-curator (шаг 8). -->
+<!-- HEAD-SUMMARY (≤500т): Rolling-состояние WIZOR. Сейчас (2026-07-05): **P5 Probe-мониторинг реализован новой методологией** — dual-geo probe 4 моделей (§6.4 структурно: ноль РФ-IP к ChatGPT/Perplexity), N≥5+CI (переиспользует P4 uncertainty), Visibility-метрики; review CHANGES→fixed (метрики были инертны — brand_terms не прокидывались; honest SoV-label) + audit tier-3 **PASS-WITH-FIXES** (§6.4 атакован 6 путей, 0 утечек); verify зелёный (182 теста, cov 88.2%). Ждёт founder-ревью P5 PR. Вмёржено ранее: P4 LLM-router (#6), P3 Score (#5), P2 Crawler (#4), методология ORIION (#2/#3), P1. Машина ВЫКЛ. Пишет только memory-curator (шаг 8). -->
 
 # STATUS — WIZOR
 
 **Обновлено:** 2026-07-05 · сессия `oriion-methodology-integration` · @claude-opus
-**Стадия:** **P4 LLM-router реализован** (tier-4 infra) — provider-agnostic gateway (GigaChat/YandexGPT/vLLM/OpenAI/Perplexity), **RU-default структурно** (§6.6: ПД-задачи не уходят иностранным даже при override→downgrade), uncertainty (N≥5+t-interval, §6.7), cost-guard (§3.4), retry/fault-isolation; ключи=PLACEHOLDERS (§6.9). Verify зелёный (137 тестов, cov 88.8%); review **CHANGES→fixed** (AC-5 fault-isolation был иллюзорным: ProviderCallError не поднимался → httpx-обёртка); auditor tier-4 **PASS** (5 линз; §6.6 атакован 4 вектора → 0 утечек; секреты/probe-geo PASS). Ждёт founder-ревью P4 PR. Вмёржено: P3 Score (#5), P2 Crawler (#4), методология ORIION (#2/#3), P1.
+**Стадия:** **P5 Probe-мониторинг реализован** (tier-3, read-only) — dual-geo probe 4 LLM-моделей (Алиса/GigaChat RU-ноды; ChatGPT/Perplexity зарубежные ноды+прокси), N≥5+CI (переиспользует P4 uncertainty), Visibility-метрики (Coverage/SoV/Citation/Stability) + Celery batch + `GET /visibility` + версионируемые промпты. Verify зелёный (182 теста, cov 88.2%); review **CHANGES→fixed** (метрики были инертны в prod — brand_terms не прокидывались через шов; honest SoV `has_competitor_data`-label); auditor tier-3 **PASS-WITH-FIXES**. Ключевое: **§6.4 dual-geo структурно** (egress выводится из модели; foreign-модель без прокси → refused, 0 dispatch; атакован 6 путей → 0 утечек). Ждёт founder-ревью P5 PR. Вмёржено: P4 LLM-router (#6), P3 Score (#5), P2 Crawler (#4), методология ORIION (#2/#3), P1.
 
 ## Прогресс роадмапа
 
@@ -14,8 +14,8 @@
 | P1 — Foundation | 🟢 **Реализован, ждёт гейт** (2026-06-24) | `gates/P1-foundation.md` (pending) |
 | P2 — Crawler/Аудит | ✅ **Вмёржен** (PR #4, 2026-07-05) | deferred_live_gold (test-WP) |
 | P3 — AI-Readiness Score | ✅ **Вмёржен** (PR #5, 2026-07-05) | — |
-| P4 — LLM-router | 🟢 **Реализован, ждёт PR-ревью** (2026-07-05) | P4 PR (deferred_live_gold) |
-| P5 — Probe-мониторинг | ⏳ Pending | — |
+| P4 — LLM-router | ✅ **Вмёржен** (PR #6, 2026-07-05) | deferred_live_gold (funded keys) |
+| P5 — Probe-мониторинг | 🟢 **Реализован, ждёт PR-ревью** (2026-07-05) | P5 PR (deferred_live_gold) |
 | P6 — Рекомендации/gap/патчи/forecast | ⏳ Pending | — |
 | P7 — Tier 0 Instant Audit (no-auth) | ⏳ Pending | — |
 | P8 — Верификация (Manual proof-loop) | ⏳ Pending | — |
@@ -26,14 +26,14 @@
 
 ## Текущая активная фаза
 
-**P4 (LLM-router)** — реализован на ветке `claude/oriion-methodology-integration-o2dp8a` (seam→domain+persistence параллельно→reconcile→fix). Цикл: план (0 эскалаций) → domain-build `llm-router-specialist`/Opus (routing/providers/uncertainty/cost-guard) ‖ `backend-implementer` (provider_configs миграция 0004 + `GET /api/v1/llm/route`) → verify (137 тестов, cov 88.8%) → review **CHANGES-REQUESTED** → fix cycle-1 → audit tier-4 **PASS** (5 линз). Ключевое: **§6.6 RU-default структурно** (ПД `content_gen/schema_gen` не уходит иностранному даже при override → downgrade к RU, `refused_override`; RU-only fallback, `NoAvailableProviderError` вместо тихого иностранного); **§6.4 probe-geo** (`assert_geo` до dispatch); **§6.9 секреты** = env/Lockbox, не в коде; uncertainty t-interval (N≥5). Review нашёл реальный баг: AC-5 fault-isolation был иллюзорным (`ProviderCallError` не поднимался) → исправлено (httpx→ProviderCallError + real-path тест). Ждёт founder-ревью P4 PR (машина ВЫКЛ). **deferred_live_gold:** живые вызовы провайдеров нужны funded-ключи + зарубежная probe-нода.
+**P5 (Probe-мониторинг)** — реализован на ветке `claude/oriion-methodology-integration-o2dp8a` (2 seam→domain+persistence параллельно→reconcile→fix). Цикл: план (0 эскалаций) → domain-build `crawler-probe-specialist` (dual-geo runner) ‖ `backend-implementer` (probe_runs/prompt_sets/visibility_metrics миграция 0005 + Celery batch + метрики + `GET /visibility`) → verify (182 теста, cov 88.2%) → review **CHANGES-REQUESTED** → fix cycle-1 → audit tier-3 **PASS-WITH-FIXES**. Ключевое: **§6.4 dual-geo структурно** (egress выводится из модели, не инъектируем; foreign-модель без прокси → `ProbeGeoViolationError`, 0 dispatch, никогда не RU; атакован 6 путей → 0 утечек); N≥5+CI (переиспользует P4 t-interval); honest-forecast (SoV=coverage-прокси, помечен `has_competitor_data=False`). Review нашёл реальный баг: метрики были инертны в prod (brand_terms не прокидывались → Visibility≡15.0/сайт) → исправлено (per-site brand_terms из URL сайта через шов). Ждёт founder-ревью P5 PR (машина ВЫКЛ). **deferred_live_gold:** живые probe нужны funded-ключи + зарубежная egress-нода. **Deferred→P6/P8/P9:** rich entity brand-terms (P6), competitor SoV (P6), probe_runs↔prompt_set_version (P8), site RLS (P9).
 
 ## Блокеры / действия founder
 
 | # | Действие | Где |
 |---|---|---|
-| 0 | **Ревью P4 PR** (LLM-router) — review CHANGES→fixed + audit tier-4 PASS, verify 88.8%; §6.6 RU-default/секреты верифицированы под атакой | P4 PR |
-| 0а | Дать **funded LLM-ключи** (GigaChat/YandexGPT/OpenAI/Perplexity + vLLM-нода) — снимет P4 `deferred_live_gold`; **test-WP URL** + PageSpeed/Bing/Яндекс — снимет P2, включит CWV/индексируемость в Score | `PLACEHOLDERS.md` |
+| 0 | **Ревью P5 PR** (Probe-мониторинг) — review CHANGES→fixed + audit tier-3 PASS-WITH-FIXES, verify 88.2%; §6.4 dual-geo верифицирован под атакой (6 путей) | P5 PR |
+| 0а | Дать **funded LLM-ключи + зарубежную probe-egress-ноду** (Hetzner/Selectel + резидентный прокси) — снимет P5/P4 `deferred_live_gold`; **test-WP URL** + PageSpeed/Bing/Яндекс — снимет P2, включит CWV/индексируемость в Score | `PLACEHOLDERS.md` |
 | 0б | **Ревью + (опц.) вооружение автономной машины** — `cp settings.recommended.json → .claude/settings.json` + `session-start.hook.sh → .claude/hooks/`; опц. premerge-хук + branch protection + `notify.json` | `.claude/autonomy/README.md` §Вооружение |
 | 1 | **Подписать гейт P1** — CI финального коммита 76641f6 зелёный (подтверждён), 8 порогов PASS | `gates/P1-foundation.md` (`founder_signature`) |
 | 2 | Принять/оспорить deferred: DLG-1 PostHog self-host (→P7), DLG-2 `make dev-bootstrap` локально (нужен Docker) | гейт P1, секция deferred_live_gold |

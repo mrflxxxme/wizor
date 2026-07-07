@@ -86,3 +86,14 @@
 - **Урок (кросс-фазовый):** review-гейт снова окупился — поймал invariant-неполноту, которую tier-4 аудит пропустил (аудит проверял AC на уровне зелёных тестов, а тест валидировал неверный тип исключения). Независимые reviewer+auditor ловят РАЗНОЕ — оба нужны.
 - **Next:** founder ревьюит P4 PR → мёрж → P5 (Probe, использует LLMRouter probe-канал). deferred_live_gold: funded LLM-ключи + зарубежная probe-нода.
 - **Refs:** P4; PLAN.md; `roadmap/P04-llm-router.md`; ADR-0021/0011/0005; charter §6.4/§6.6/§6.7/§6.9; `_session-context/AUDIT-2026-07-05-P4/`; коммиты 7a4a23f/eaf0127/e7097e8.
+
+## 2026-07-05 · oriion-methodology-integration · @claude-opus (P5 Probe-мониторинг)
+
+- **Scope:** после мёржа P4 (#6) — P5 методологией, В ОСНОВНОЙ сессии + Agent-суб-агенты (урок инцидента P4: не через fire_trigger). 2-контекстная фаза (probe + metrics), tier-3, зависит от P4.
+- **Build (2 параллельных суб-агента, 2 фиксированных DTO-шва probe/schemas + metrics/schemas):** `crawler-probe-specialist` → dual-geo runner (geo/runner/config); `backend-implementer` → probe_runs/prompt_sets/visibility_metrics (миграция 0005) + Celery batch + metrics/engine + endpoints. Orchestrator реконсилил `ProbeRunner`-шов (backend ждал single-run, специалист сделал list-returning `run_prompt(n_runs)` — прав специалист, адаптировал task+Protocol+тест).
+- **Verify:** ruff/format/mypy/bandit/pip-audit/182 теста/cov 88.2%.
+- **Gates:** review **CHANGES-REQUESTED** + auditor tier-3 **PASS-WITH-FIXES** (оба согласны). §6.4 dual-geo PASS (атакован 6 путей → 0 утечек, egress из модели неинъектируем); fault-isolation taxonomy PASS (P4-класс баг НЕ повторился — runner ловит ровно то, что P4-адаптеры бросают, тест на реальном пути). **Реальный баг (оба гейта):** метрики инертны в prod — `brand_terms` не прокидывались через batch-шов → mention/citation всегда (False,False) → Visibility≡15.0/сайт, тесты маскировали (передавали terms явно). Фикс: per-site brand_terms из URL сайта (`_site_brand_terms` + tenant-scoped `_load_site_url`) через шов; honest SoV (`has_competitor_data=False`, §6.2); broadened runner catch (AC-6 контракт реален).
+- **Урок:** тесты, которые «передают правильный вход явно», скрывают, что PROD-путь этот вход не поставляет — гейт поймал инертные метрики только адверсариальной трассировкой seam'а, не через зелёные тесты. Паттерн повторяется (P4 AC-5, P5 brand_terms): тест на фейке с идеальным входом ≠ прод-путь.
+- **Deferred→P6/P8/P9:** rich entity brand-terms (P6), competitor SoV (P6), probe_runs↔prompt_set_version (P8), site RLS (P9) — оба гейта + spec-aligned.
+- **Next:** founder ревьюит P5 PR → мёрж → P6 (Рекомендации, зависит P3+P5). deferred_live_gold: funded-ключи + зарубежная egress-нода.
+- **Refs:** P5; PLAN.md; `roadmap/P05-probe-monitoring.md`; ADR-0021/0014/0005; charter §6.4/§6.7/§6.2; `_session-context/AUDIT-2026-07-05-P5/`; коммиты 86f80fa/f054b8c.
