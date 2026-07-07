@@ -68,7 +68,11 @@ async def test_visibility_200_shape(
     assert resp.status_code == 200
     body = resp.json()
     assert 0.0 <= body["visibility_score"] <= 100.0
-    assert {"coverage", "sov", "citation_rate", "stability"} == set(body["components"])
+    assert {"coverage", "sov", "citation_rate", "stability", "has_competitor_data"} == set(
+        body["components"]
+    )
+    # F2 (§6.2 honest-forecast): API отдаёт флаг, чтобы фронт не выдал sov-прокси за реальную долю.
+    assert body["components"]["has_competitor_data"] is False
     assert body["ci_lower"] <= body["ci_upper"]
     assert body["n"] == 20
     assert body["prompt_set_version"] == 3

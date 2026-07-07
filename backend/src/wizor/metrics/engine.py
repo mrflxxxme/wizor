@@ -170,6 +170,8 @@ def aggregate_visibility(
         sov=sov,
         citation_rate=citation_rate,
         stability=stability,
+        # P5: конкурент-данных нет → sov это coverage-прокси, а не реальная доля (§6.2).
+        has_competitor_data=False,
     )
     visibility_score = round(
         100.0

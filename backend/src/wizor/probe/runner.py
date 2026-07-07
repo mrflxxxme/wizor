@@ -204,6 +204,17 @@ class ProbeRunner:
                 error=str(exc),
             )
             return self._error_run(ctx, run_index, now, f"provider: {exc}")
+        except Exception as exc:  # AC-6: ЛЮБОЙ per-run сбой → error-run, батч живёт
+            # «run_prompt не бросает» (докстринг) — реальная гарантия: неожиданная ошибка (кривой
+            # прокси-URL и т.п.) тоже изолируется в error-прогон, не всплывает выше per-run.
+            logger.warning(
+                "probe.run_error",
+                prompt_id=ctx.prompt_id,
+                model=ctx.model,
+                run_index=run_index,
+                error=str(exc),
+            )
+            return self._error_run(ctx, run_index, now, f"error: {exc}")
 
         mentioned, cited = detect_mention_citation(response.text, ctx.brand_terms)
         return ProbeRun(

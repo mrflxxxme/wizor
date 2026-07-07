@@ -22,10 +22,14 @@ import importlib
 import uuid
 from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
+from urllib.parse import urlparse
 
 import structlog
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from wizor.db.session import get_sessionmaker
+from wizor.iam.models import Site
 from wizor.llm_router.uncertainty import MIN_RUNS
 from wizor.metrics.engine import aggregate_visibility
 from wizor.metrics.repository import save_visibility_metrics
@@ -58,15 +62,52 @@ class _ProbeRunnerSeam(Protocol):
     """
 
     async def run_prompt(
-        self, *, prompt_id: str, prompt: str, model: ModelId, n_runs: int
+        self,
+        *,
+        prompt_id: str,
+        prompt: str,
+        model: ModelId,
+        n_runs: int,
+        brand_terms: Sequence[str],
     ) -> list[ProbeRun]:
-        """Выполнить N≥5 probe-прогонов промпта на модели (dual-geo + парсинг внутри)."""
+        """Выполнить N≥5 probe-прогонов промпта на модели (dual-geo + парсинг внутри).
+
+        ``brand_terms`` — per-site бренд/домен-термы для эвристики mention/citation (пер-сайт,
+        НЕ глобальный env → multi-tenant-safe). Без них ``detect_mention_citation`` вернёт
+        ``(False, False)`` и все метрики выродятся к базовому уровню — шов ОБЯЗАН их нести.
+        """
         ...  # pragma: no cover — Protocol-заглушка
 
 
 def _egress_for(model: ModelId) -> Egress:
     """Ожидаемый гео-класс исходящего для модели (§6.4: иностранная → только 'foreign')."""
     return "foreign" if model in FOREIGN_MODELS else "ru"
+
+
+def _site_brand_terms(url: str) -> list[str]:
+    """Стартовые бренд/домен-термы из URL сайта (ЧИСТО, без сети): метка домена + полный хост.
+
+    ``https://www.example.com/x`` → ``["example", "example.com"]``: метка регистрируемого
+    домена (бренд-терм → mention) + полный хост без ``www``/порта/userinfo (домен-терм с точкой
+    → citation). Эвристика без public-suffix-list: метка = предпоследний лейбл хоста. Пустой или
+    непарсибельный хост → ``[]``.
+
+    # deferred: rich entity brand-terms (продукты, алиасы из crawler entity-extraction) → P6.
+    """
+    netloc = urlparse(url).netloc
+    host = netloc.rsplit("@", 1)[-1].rsplit(":", 1)[0].strip().lower()
+    host = host.removeprefix("www.")
+    if not host:
+        return []
+    labels = [label for label in host.split(".") if label]
+    terms: list[str] = []
+    if len(labels) >= 2:  # «домен.tld»: бренд-метка = предпоследний лейбл
+        terms.append(labels[-2])
+    elif labels:
+        terms.append(labels[0])
+    if host not in terms:
+        terms.append(host)  # полный хост — домен-терм (содержит '.', → citation)
+    return terms
 
 
 def _load_runner() -> _ProbeRunnerSeam:
@@ -92,13 +133,16 @@ async def collect_probe_runs(
     runner: _ProbeRunnerSeam,
     prompts: Sequence[str],
     *,
+    brand_terms: Sequence[str],
     now: datetime.datetime,
 ) -> tuple[list[ProbeRun], list[ModelId]]:
     """Прогнать модели × промпты × N прогонов с fault-isolation (AC-1/AC-6). ЧИСТО от БД.
 
     Возвращает ``(runs, failed_models)``. Сбой одного прогона → синтетический ``ProbeRun`` с
     ``error`` (батч не падает); модель со 100% провалом попадает в ``failed_models``. Ключ
-    промпта — индекс в наборе (стабилен между прогонами одной версии).
+    промпта — индекс в наборе (стабилен между прогонами одной версии). ``brand_terms`` —
+    per-site термы mention/citation — прокидываются в КАЖДЫЙ ``run_prompt`` (без них метрики
+    инертны).
     """
     all_runs: list[ProbeRun] = []
     failed_models: list[ModelId] = []
@@ -114,6 +158,7 @@ async def collect_probe_runs(
                         prompt=prompt_text,
                         model=model,
                         n_runs=RUNS_PER_PROMPT,
+                        brand_terms=brand_terms,
                     )
                 )
             except Exception as exc:  # wholesale-сбой раннера → синтетические error-runs (AC-6)
@@ -140,6 +185,14 @@ async def collect_probe_runs(
     return all_runs, failed_models
 
 
+async def _load_site_url(
+    session: AsyncSession, *, tenant_id: uuid.UUID, site_id: uuid.UUID
+) -> str | None:
+    """URL сайта строго в рамках тенанта (§6.8; mirror crawler ``_load_site_url``). Нет → None."""
+    stmt = select(Site.url).where(Site.id == site_id, Site.tenant_id == tenant_id)
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
 async def _run(tenant_id: uuid.UUID, site_id: uuid.UUID) -> dict[str, object]:
     """Асинхронное тело задачи: набор промптов → прогоны → persist → агрегат → persist."""
     now = datetime.datetime.now(tz=datetime.UTC)
@@ -147,12 +200,23 @@ async def _run(tenant_id: uuid.UUID, site_id: uuid.UUID) -> dict[str, object]:
 
     async with sessionmaker() as session:
         prompt_set = await load_active_prompt_set(session, tenant_id=tenant_id, site_id=site_id)
+        site_url = await _load_site_url(session, tenant_id=tenant_id, site_id=site_id)
     if prompt_set is None:
         logger.warning("probe.no_prompt_set", tenant_id=str(tenant_id), site_id=str(site_id))
         return {"status": "no_prompt_set", "site_id": str(site_id)}
 
+    # Per-site бренд/домен-термы (multi-tenant-safe: из URL сайта, НЕ глобальный env). Богатые
+    # термы (продукты/алиасы из entity-extraction) — # deferred: rich entity brand-terms → P6.
+    if site_url:
+        brand_terms = _site_brand_terms(site_url)
+    else:
+        logger.warning("probe.no_site_url", tenant_id=str(tenant_id), site_id=str(site_id))
+        brand_terms = []
+
     runner = _load_runner()
-    runs, failed_models = await collect_probe_runs(runner, prompt_set.prompts, now=now)
+    runs, failed_models = await collect_probe_runs(
+        runner, prompt_set.prompts, brand_terms=brand_terms, now=now
+    )
 
     for model in failed_models:
         # AC-6: провал одного провайдера — provider_failed, а НЕ batch_failed.

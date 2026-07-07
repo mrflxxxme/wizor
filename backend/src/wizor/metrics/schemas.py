@@ -13,11 +13,16 @@ class VisibilityComponents(BaseModel):
     coverage: float = Field(ge=0.0, le=1.0)
     """Presence: доля промптов, где клиент упомянут хотя бы в одной модели."""
     sov: float = Field(ge=0.0, le=1.0)
-    """Share of Voice: доля упоминаний клиента vs конкуренты (при наличии конкурент-данных)."""
+    """Share of Voice: доля упоминаний клиента vs конкуренты. В P5 конкурент-данных нет →
+    это coverage-ПРОКСИ (``sov == coverage``), а НЕ реальная конкурентная доля; настоящий SoV
+    с трекингом конкурентов приходит в P6. Флаг ``has_competitor_data`` (§6.2 honest-forecast)."""
     citation_rate: float = Field(ge=0.0, le=1.0)
     """Доля ответов, где клиент процитирован как источник / дана ссылка."""
     stability: float = Field(ge=0.0, le=1.0)
     """Стабильность между прогонами (1 − нормированная дисперсия); высокая = мало шума (AC-7)."""
+    has_competitor_data: bool = False
+    """§6.2 honest-forecast: False в P5 — ``sov`` это coverage-прокси, а не конкурентная доля.
+    Станет True с трекингом конкурентов (P6); фронт по нему НЕ выдаёт прокси за реальный SoV."""
 
 
 class VisibilityMetrics(BaseModel):

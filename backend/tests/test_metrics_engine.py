@@ -107,3 +107,15 @@ def test_failed_runs_excluded_from_success_basis() -> None:
     assert aggregates[0].n == 6
     assert aggregates[0].n_success == 5
     assert metrics.n == 5  # только успешные прогоны — основа CI (§6.7)
+
+
+def test_sov_is_coverage_proxy_labeled_p5_f2() -> None:
+    """F2 (§6.2 honest-forecast): в P5 sov — coverage-прокси, has_competitor_data=False."""
+    runs = [_run("0", i, mentioned=(i % 2 == 0), cited=(i == 0)) for i in range(6)]
+
+    _aggregates, metrics = aggregate_visibility(runs)
+
+    # Флаг честности: конкурент-данных в P5 нет → фронт не выдаёт прокси за реальную долю.
+    assert metrics.components.has_competitor_data is False
+    # sov в точности равен coverage (задокументированный P5-fallback движка).
+    assert metrics.components.sov == metrics.components.coverage
